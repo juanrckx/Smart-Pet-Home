@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dispensador de Comida</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <h1>🐾 Smart Pet</h1>
+        <nav>
+            <a href="../index.html">📊 Dashboard</a>
+            <a href="comida.html" class="active">🍖 Comida</a>
+            <a href="agua.html">💧 Agua</a>
+            <a href="sensores.html">📡 Sensores</a>
+            <a href="configuracion.html">⚙️ Configuración</a>
+        </nav>
+    </aside>
+
+    <main class="container">
+        <header class="header">
+            <h1>🍖 Dispensador de Comida</h1>
+            <p>Controla las porciones de tu mascota en tiempo real</p>
+        </header>
+
+        <div class="grid">
+            <!-- TARJETA 1: DISPENSADOR -->
+            <div class="card card-comida">
+                <h2>
+                    <span class="indicator-light indicator-green" id="foodIndicador"></span>
+                    Dispensar Comida
+                </h2>
+
+                <div class="form-group">
+                    <label for="gramos">Cantidad (gramos):</label>
+                    <input
+                        type="number"
+                        id="gramos"
+                        min="10"
+                        max="500"
+                        value="100"
+                        placeholder="Ingresa gramos (10-500)"
+                    >
+                    <small style="color: #9E9E9E;">Rango: 10g - 500g</small>
+                </div>
+
+                <button id="dispensarBtn" class="btn btn-primary">
+                    ▶ DISPENSAR
+                </button>
+
+                <div id="resultado" style="margin-top: 15px; display: none;"></div>
+
+                <div id="loading" style="display: none; margin-top: 15px;">
+                    <p style="color: #F57C00; font-weight: bold;">⏳ Dispensando comida...</p>
+                </div>
+
+                <div class="status">
+                    <p>
+                        <span class="status-label">Nivel:</span>
+                        <span class="status-value" id="nivelComida">--</span>
+                    </p>
+                </div>
+
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressComida" style="width: 0%;">--</div>
+                </div>
+            </div>
+
+            <!-- TARJETA 2: CONFIGURACIÓN -->
+            <div class="card card-comida">
+                <h2>⚙️ Configuración</h2>
+
+                <div class="form-group">
+                    <label for="porcionDefault">Porción por defecto (g):</label>
+                    <input type="number" id="porcionDefault" value="100" min="10" max="500">
+                </div>
+
+                <div class="form-group">
+                    <label for="tiempoDispensa">Tiempo de dispensación (seg):</label>
+                    <input type="number" id="tiempoDispensa" value="5" min="1" max="20">
+                </div>
+
+                <button id="guardarConfigBtn" class="btn btn-secondary">
+                    💾 Guardar
+                </button>
+            </div>
+
+            <!-- TARJETA 3: HISTORIAL -->
+            <div class="card card-comida">
+                <h2>📅 Historial del Día</h2>
+                <div id="historial" style="max-height: 250px; overflow-y: auto;">
+                    <p style="color: #9E9E9E;">Cargando historial...</p>
+                </div>
+                <button id="recargarBtn" class="btn btn-secondary btn-small" style="margin-top: 10px;">
+                    🔄 Recargar
+                </button>
+            </div>
+
+            <!-- TARJETA 4: ESTADÍSTICAS -->
+            <div class="card card-comida">
+                <h2>📊 Estadísticas</h2>
+                <div class="status">
+                    <p>
+                        <span class="status-label">Total hoy:</span>
+                        <span class="status-value" id="totalHoy">0g</span>
+                    </p>
+                </div>
+                <div class="status">
+                    <p>
+                        <span class="status-label">Dispensaciones:</span>
+                        <span class="status-value" id="totalDispensaciones">0</span>
+                    </p>
+                </div>
+                <div class="status">
+                    <p>
+                        <span class="status-label">Promedio por vez:</span>
+                        <span class="status-value" id="promedio">0g</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div id="alertContainer" style="position: fixed; bottom: 20px; right: 20px; max-width: 300px; z-index: 9999;"></div>
+    </main>
+
+    <script src="../js/api.js"></script>
+    <script>
+        // ================================================================
+        // CONTROLADOR DE LA PÁGINA DE COMIDA
+        //
+        // CAMBIOS RESPECTO AL ORIGINAL:
+        //   1. dispensarComida() ahora usa ComidaApi.dispensar() en vez de fetch()
+        //   2. cargarHistorial() ahora usa EventosApi.obtener() y lee datos reales
+        //   3. cargarEstado() usa ComidaApi.obtenerEstado() para el nivel real
+        //   4. Los botones usan addEventListener en vez de onclick en el HTML
+        //      (mejor práctica: separar HTML de lógica JS)
+        // ================================================================
+
+        // ── Al cargar la página ──────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarEstado();
+            cargarHistorial();
+            cargarConfiguracionGuardada();
+
+            document.getElementById('dispensarBtn').addEventListener('click', dispensarComida);
+            document.getElementById('recargarBtn').addEventListener('click', cargarHistorial);
+            document.getElementById('guardarConfigBtn').addEventListener('click', guardarConfiguracion);
+        });
+
+        // ── Dispensar ────────────────────────────────────────────────────
+        async function dispensarComida() {
+            const gramos    = document.getElementById('gramos').value;
+            const btn       = document.getElementById('dispensarBtn');
+            const resultado = document.getElementById('resultado');
+            const loading   = document.getElementById('loading');
+
+            btn.disabled          = true;
+            loading.style.display = 'block';
+            resultado.style.display = 'none';
+
+            // Usamos ComidaApi — ya no hay fetch() directo aquí
+            const data = await ComidaApi.dispensar(gramos);
+
+            if (data.success) {
+                mostrarResultado(`✅ ${data.message}`, 'success');
+                mostrarAlerta('✅ Dispensación completada', 'success');
+                document.getElementById('gramos').value = '100';
+                cargarHistorial(); // Recargar historial con el nuevo evento
+            } else {
+                mostrarResultado(`❌ ${data.error}`, 'error');
+                mostrarAlerta(`❌ ${data.error}`, 'error');
+            }
+
+            btn.disabled          = false;
+            loading.style.display = 'none';
+        }
+
+        // ── Estado del dispensador (nivel real) ──────────────────────────
+        async function cargarEstado() {
+            const data = await ComidaApi.obtenerEstado();
+            if (!data.success && data.error) return; // Servidor apagado, no rompemos la UI
+
+            const nivel    = data.nivel ?? 0;
+            const clase    = nivel <= 20 ? 'critical' : nivel <= 40 ? 'low' : '';
+
+            document.getElementById('nivelComida').textContent = `${nivel}%`;
+
+            const barra = document.getElementById('progressComida');
+            barra.style.width     = `${nivel}%`;
+            barra.textContent     = `${nivel}%`;
+            barra.className       = `progress-fill ${clase}`;
+        }
+
+        // ── Historial real desde eventos.json ────────────────────────────
+        async function cargarHistorial() {
+            const contenedor = document.getElementById('historial');
+            contenedor.innerHTML = '<p style="color: #9E9E9E;">Cargando...</p>';
+
+            // EventosApi filtra por dispositivo para mostrar solo comida
+            const data = await EventosApi.obtener({ dispositivo: 'dispensador_comida', limite: 20 });
+
+            if (!data.success || data.eventos.length === 0) {
+                contenedor.innerHTML = '<p style="color: #9E9E9E;">Sin registros aún</p>';
+                actualizarEstadisticas([]);
+                return;
+            }
+
+            // Filtrar solo eventos de hoy
+            const hoy     = new Date().toDateString();
+            const deHoy   = data.eventos.filter(e => new Date(e.timestamp).toDateString() === hoy);
+            const mostrar = deHoy.length > 0 ? deHoy : data.eventos; // Si no hay de hoy, mostrar todos
+
+            contenedor.innerHTML = mostrar.map(evento => {
+                const hora = new Date(evento.timestamp).toLocaleTimeString('es-CR', {
+                    hour: '2-digit', minute: '2-digit'
+                });
+                return `
+                    <div style="border-left: 3px solid #F57C00; padding-left: 12px; margin: 10px 0;">
+                        <p><strong>${hora}</strong> — Dispensados ${evento.gramos}g</p>
+                    </div>
+                `;
+            }).join('');
+
+            actualizarEstadisticas(deHoy);
+        }
+
+        // ── Estadísticas calculadas desde los eventos reales ─────────────
+        function actualizarEstadisticas(eventos) {
+            const total      = eventos.reduce((sum, e) => sum + (e.gramos || 0), 0);
+            const cantidad   = eventos.length;
+            const promedio   = cantidad > 0 ? Math.round(total / cantidad) : 0;
+
+            document.getElementById('totalHoy').textContent          = `${total}g`;
+            document.getElementById('totalDispensaciones').textContent = cantidad;
+            document.getElementById('promedio').textContent           = `${promedio}g`;
+        }
+
+        // ── Configuración (guardada en localStorage) ─────────────────────
+        function cargarConfiguracionGuardada() {
+            const config = JSON.parse(localStorage.getItem('foodConfig') || '{}');
+            if (config.porcionDefault) document.getElementById('porcionDefault').value = config.porcionDefault;
+            if (config.tiempoDispensa) document.getElementById('tiempoDispensa').value = config.tiempoDispensa;
+            if (config.porcionDefault) document.getElementById('gramos').value          = config.porcionDefault;
+        }
+
+        function guardarConfiguracion() {
+            const config = {
+                porcionDefault: document.getElementById('porcionDefault').value,
+                tiempoDispensa: document.getElementById('tiempoDispensa').value
+            };
+            localStorage.setItem('foodConfig', JSON.stringify(config));
+            document.getElementById('gramos').value = config.porcionDefault;
+            mostrarAlerta('✅ Configuración guardada', 'success');
+        }
+
+        // ── UI helpers ───────────────────────────────────────────────────
+        function mostrarResultado(mensaje, tipo) {
+            const el  = document.getElementById('resultado');
+            el.textContent  = mensaje;
+            el.className    = tipo === 'success' ? 'alert alert-success' : 'alert alert-error';
+            el.style.display = 'block';
+        }
+
+        function mostrarAlerta(mensaje, tipo) {
+            const clases = { success: 'alert-success', error: 'alert-error', warning: 'alert-warning', info: 'alert-info' };
+            const alerta = document.createElement('div');
+            alerta.className  = `alert ${clases[tipo] || 'alert-info'}`;
+            alerta.innerHTML  = `<div>${mensaje}</div>`;
+            document.getElementById('alertContainer').appendChild(alerta);
+            setTimeout(() => alerta.remove(), 4000);
+        }
+    </script>
+</body>
+</html>

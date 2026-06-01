@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Pet Home - Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Sidebar (menú lateral) -->
+    <aside class="sidebar">
+        <h1>🐾 Smart Pet</h1>
+        <nav>
+            <a href="#dashboard" class="active">Dashboard</a>
+            <a href="pages/comida.html">Comida</a>
+            <a href="pages/agua.html">Agua</a>
+            <a href="pages/sensores.html">Sensores</a>
+            <a href="pages/configuracion.html">Configuración</a>
+        </nav>
+    </aside>
+
+    <!-- Contenido principal -->
+    <main class="container">
+        <!-- HEADER -->
+        <header class="header">
+            <h1>Dashboard Principal</h1>
+            <p id="timestamp">Cargando...</p>
+        </header>
+
+        <!-- GRID DE TARJETAS -->
+        <div class="grid">
+            <!-- Tarjeta: Dispensador Comida -->
+            <div class="card">
+                <h2>Dispensador Comida</h2>
+                <div class="status">
+                    <p>Estado: <span id="food-status">●</span> Online</p>
+                    <p>Última actividad: <span id="food-last">--</span></p>
+                </div>
+                <a href="pages/comida.html" class="btn">Ir a Comida</a>
+            </div>
+
+            <!-- Tarjeta: Dispensador Agua -->
+            <div class="card">
+                <h2>Dispensador Agua</h2>
+                <div class="status">
+                    <p>Estado: <span id="water-status">●</span> Offline</p>
+                    <p>Nivel: <span id="water-level">--</span></p>
+                </div>
+                <a href="pages/agua.html" class="btn">Ir a Agua</a>
+            </div>
+
+            <!-- Tarjeta: Sensores -->
+            <div class="card">
+                <h2>Sensores</h2>
+                <div class="status">
+                    <p>Temperatura: <span id="temp">--°C</span></p>
+                    <p>Movimiento: <span id="motion">No detectado</span></p>
+                </div>
+                <a href="pages/sensores.html" class="btn">Ver Sensores</a>
+            </div>
+
+            <!-- Tarjeta: Últimos Eventos -->
+            <div class="card">
+                <h2>Últimos Eventos</h2>
+                <div id="eventos-list">
+                    <p>Cargando eventos...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts -->
+    <script src="js/api.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
