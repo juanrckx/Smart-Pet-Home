@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comunicación - Smart Pet Home</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <h1>🐾 Smart Pet</h1>
+        <nav>
+            <a href="../index.html">📊 Dashboard</a>
+            <a href="comida.html">🍖 Comida</a>
+            <a href="agua.html">💧 Agua</a>
+            <a href="sensores.html">📡 Sensores</a>
+            <a href="puerta.html">🚪 Puerta</a>
+            <a href="comunicacion.html" class="active">📢 Comunicación</a>
+            <a href="juego-botones.html">🎮 Juego</a>
+            <a href="lanzador-pelotas.html" >🎾 Pelotas</a>
+            <a href="configuracion.html">⚙️ Configuración</a>
+        </nav>
+    </aside>
+
+    <main class="container">
+        <header class="header">
+            <h1>📢 Comunicación y Video</h1>
+            <p>Simula hablar con tu mascota y ver video desde la interfaz</p>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <h2>🔊 Hablar con Mascota</h2>
+
+                <div class="form-group">
+                    <label for="duracionBuzzer">Duración del sonido (ms):</label>
+                    <input type="number" id="duracionBuzzer" value="1500" min="200" max="10000">
+                </div>
+
+                <button id="hablarBtn" class="btn btn-primary">
+                    🎙 Hablar
+                </button>
+
+                <p style="color:#9E9E9E; margin-top: 15px;">
+                    Al presionar, el buzzer sonará para simular que el dueño habla con la mascota.
+                </p>
+            </div>
+
+            <div class="card">
+                <h2>📺 Simulación de Video</h2>
+
+                <div class="status">
+                    <p>
+                        <span class="status-label">Video:</span>
+                        <span class="status-value" id="estadoVideo">--</span>
+                    </p>
+                    <p>
+                        <span class="status-label">Arduino:</span>
+                        <span class="status-value" id="estadoArduino">--</span>
+                    </p>
+                </div>
+
+                <button id="encenderVideoBtn" class="btn btn-primary">
+                    ▶ Encender Video
+                </button>
+
+                <button id="apagarVideoBtn" class="btn btn-secondary">
+                    ⏹ Apagar Video
+                </button>
+            </div>
+
+            <div class="card">
+                <h2>✏️ Texto LCD 20x4</h2>
+            
+                <div class="form-group">
+                    <label for="linea1">Línea 1 LCD:</label>
+                    <input type="text" id="linea1" value="SMART PET HOME" maxlength="20">
+                    <small style="color:#9E9E9E;">Máximo 20 caracteres</small>
+                </div>
+            
+                <div class="form-group">
+                    <label for="linea2">Línea 2 LCD:</label>
+                    <input type="text" id="linea2" value="VIDEO EN VIVO" maxlength="20">
+                    <small style="color:#9E9E9E;">Máximo 20 caracteres</small>
+                </div>
+            
+                <div class="form-group">
+                    <label for="linea3">Línea 3 LCD:</label>
+                    <input type="text" id="linea3" value="Mascota online :)" maxlength="20">
+                    <small style="color:#9E9E9E;">Máximo 20 caracteres</small>
+                </div>
+            
+                <div class="form-group">
+                    <label for="linea4">Línea 4 LCD:</label>
+                    <input type="text" id="linea4" value="Sistema activo" maxlength="20">
+                    <small style="color:#9E9E9E;">Máximo 20 caracteres</small>
+                </div>
+            
+                <button id="enviarTextoBtn" class="btn btn-primary">
+                    📟 Enviar a LCD
+                </button>
+            </div>
+            
+            <div class="card">
+                <h2>ℹ️ Idea de la simulación</h2>
+                <p>
+                    La LCD representa una cámara encendida. Cuando el usuario activa video,
+                    la pantalla muestra que la mascota está en línea.
+                </p>
+                <div class="status">
+                    <p>
+                        <span class="status-label">LCD línea 1:</span>
+                        <span class="status-value" id="lcdLinea1">--</span>
+                    </p>
+                    <p>
+                        <span class="status-label">LCD línea 2:</span>
+                        <span class="status-value" id="lcdLinea2">--</span>
+                    </p>
+                    <p>
+                        <span class="status-label">LCD línea 3:</span>
+                        <span class="status-value" id="lcdLinea3">--</span>
+                    </p>
+                    <p>
+                        <span class="status-label">LCD línea 4:</span>
+                        <span class="status-value" id="lcdLinea4">--</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div id="alertContainerComunicacion" style="position: fixed; bottom: 20px; right: 20px; max-width: 320px; z-index: 9999;"></div>
+    </main>
+
+    <script src="../js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarEstado();
+
+            document.getElementById('hablarBtn').addEventListener('click', hablar);
+            document.getElementById('encenderVideoBtn').addEventListener('click', encenderVideo);
+            document.getElementById('apagarVideoBtn').addEventListener('click', apagarVideo);
+            document.getElementById('enviarTextoBtn').addEventListener('click', enviarTexto);
+
+            setInterval(cargarEstado, 5000);
+        });
+
+        async function cargarEstado() {
+            const data = await ComunicacionApi.obtenerEstado();
+
+            if (!data.success) {
+                mostrarAlerta(data.error, 'error');
+                return;
+            }
+
+            document.getElementById('estadoVideo').textContent = data.video_activo ? 'Activo' : 'Apagado';
+            document.getElementById('estadoArduino').textContent = data.arduino_conectado ? 'Conectado' : 'No conectado';
+
+            document.getElementById('lcdLinea1').textContent = data.lcd_linea_1 || '--';
+            document.getElementById('lcdLinea2').textContent = data.lcd_linea_2 || '--';
+            document.getElementById('lcdLinea3').textContent = data.lcd_linea_3 || '--';
+            document.getElementById('lcdLinea4').textContent = data.lcd_linea_4 || '--';
+        }
+
+        async function hablar() {
+            const duracion = document.getElementById('duracionBuzzer').value;
+            const data = await ComunicacionApi.hablar(duracion);
+            manejarRespuesta(data);
+        }
+
+        async function encenderVideo() {
+            const data = await ComunicacionApi.encenderVideo(
+                'SMART PET HOME', 
+                'VIDEO EN VIVO',
+                'Mascota online :)',
+                'Sistema activo'
+            );
+            manejarRespuesta(data);
+        }
+
+        async function apagarVideo() {
+            const data = await ComunicacionApi.apagarVideo();
+            manejarRespuesta(data);
+        }
+
+        async function enviarTexto() {
+            const linea1 = document.getElementById('linea1').value;
+            const linea2 = document.getElementById('linea2').value;
+            const linea3 = document.getElementById('linea3').value;
+            const linea4 = document.getElementById('linea4').value;
+
+
+            const data = await ComunicacionApi.enviarTextoLCD(linea1, linea2, linea3, linea4);
+            manejarRespuesta(data);
+        }
+
+        function manejarRespuesta(data) {
+            if (data.success) {
+                mostrarAlerta(data.message, 'success');
+                cargarEstado();
+            } else {
+                mostrarAlerta(data.error, 'error');
+            }
+        }
+
+        function mostrarAlerta(mensaje, tipo) {
+            const clases = {
+                success: 'alert-success',
+                error: 'alert-error',
+                warning: 'alert-warning',
+                info: 'alert-info'
+            };
+
+            const alerta = document.createElement('div');
+            alerta.className = `alert ${clases[tipo] || 'alert-info'}`;
+            alerta.textContent = mensaje;
+
+            document.getElementById('alertContainerComunicacion').appendChild(alerta);
+
+            setTimeout(() => alerta.remove(), 4000);
+        }
+    </script>
+</body>
+</html>

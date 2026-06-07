@@ -260,6 +260,92 @@ class JuegoBotonesApi extends ApiBase {
     }
 }
 
+class PuertaApi extends ApiBase {
+    static obtenerEstado() {
+        return this.get('/puerta/status');
+    }
+
+    static abrir() {
+        return this.post('/puerta/abrir');
+    }
+
+    static cerrar() {
+        return this.post('/puerta/cerrar');
+    }
+
+    static abrirTemporal(segundos) {
+        return this.post('/puerta/abrir-temporal', {
+            segundos: Number(segundos)
+        });
+    }
+
+    static programar(intervaloMinutos, duracionSegundos) {
+        return this.post('/puerta/programar', {
+            intervaloMinutos: Number(intervaloMinutos),
+            duracionSegundos: Number(duracionSegundos)
+        });
+    }
+
+    static detenerProgramacion() {
+        return this.post('/puerta/detener-programacion');
+    }
+}
+
+class ComunicacionApi extends ApiBase {
+    static obtenerEstado() {
+        return this.get('/comunicacion/status');
+    }
+
+    static hablar(duracionMs = 1500) {
+        return this.post('/comunicacion/hablar', {
+            duracionMs: Number(duracionMs)
+        });
+    }
+
+    static encenderVideo(
+        linea1 = 'SMART PET HOME',
+        linea2 = 'VIDEO EN VIVO',
+        linea3 = 'Mascota online :)',
+        linea4 = 'Sistema activo'
+    ) {
+        return this.post('/comunicacion/video/encender', {
+            linea1,
+            linea2,
+            linea3,
+            linea4
+        });
+    }
+
+    static apagarVideo() {
+        return this.post('/comunicacion/video/apagar');
+    }
+
+    static enviarTextoLCD(linea1, linea2, linea3, linea4) {
+        return this.post('/comunicacion/lcd/texto', {
+            linea1,
+            linea2,
+            linea3,
+            linea4
+        });
+    }
+}
+
+class LanzadorPelotasApi extends ApiBase {
+    static obtenerEstado() {
+        return this.get('/lanzador-pelotas/status');
+    }
+
+    static lanzar(cantidad = 5) {
+        return this.post('/lanzador-pelotas/lanzar', {
+            cantidad: Number(cantidad)
+        });
+    }
+
+    static detener() {
+        return this.post('/lanzador-pelotas/detener');
+    }
+}
+
 /**
  * Exponer clases globalmente.
  * Esto permite que comida.html, agua.html, sensores.html y app.js
@@ -275,3 +361,6 @@ window.SensoresApi = SensoresApi;
 window.MascotasApi = MascotasApi;
 window.MascotaApi = MascotasApi;
 window.JuegoBotonesApi = JuegoBotonesApi;
+window.PuertaApi = PuertaApi;
+window.ComunicacionApi = ComunicacionApi;
+window.LanzadorPelotasApi = LanzadorPelotasApi;

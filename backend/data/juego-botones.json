@@ -1,7 +1,48 @@
 {
-    "fecha": null,
-    "botonGanador": null,
-    "premioEntregado": false,
-    "totalIntentos": 0,
-    "intentos": []
+  "fecha": "2026-06-07",
+  "botonGanador": 4,
+  "premioEntregado": true,
+  "totalIntentos": 4,
+  "intentos": [
+    {
+      "id": "intento_f2bd39a3-ec78-4be7-ad7f-06828387de90",
+      "timestamp": "2026-06-07T20:29:07.130Z",
+      "botonElegido": 4,
+      "acerto": true,
+      "premioYaEntregado": true,
+      "premioEntregadoAhora": false,
+      "mensaje": "Ganó otra vez! Botón 4, pero el premio de hoy ya fue entregado."
+    },
+    {
+      "id": "intento_91f4487e-fc5e-4e11-8032-2fb28ea7643b",
+      "timestamp": "2026-06-07T20:29:04.462Z",
+      "botonElegido": 3,
+      "acerto": false,
+      "premioYaEntregado": true,
+      "premioEntregadoAhora": false,
+      "mensaje": "Botón 3: no era el ganador. Puede seguir intentando."
+    },
+    {
+      "id": "intento_66b9b7ac-aea4-49da-9679-db7d1b8d6851",
+      "timestamp": "2026-06-07T20:21:59.459Z",
+      "botonElegido": 4,
+      "acerto": true,
+      "premioYaEntregado": false,
+      "premioEntregadoAhora": true,
+      "mensaje": "¡Ganó! Botón 4. Premio dispensado."
+    },
+    {
+      "id": "intento_a60e3fb8-0210-472e-b090-3638d9c3506f",
+      "timestamp": "2026-06-07T20:21:54.994Z",
+      "botonElegido": 3,
+      "acerto": false,
+      "premioYaEntregado": false,
+      "premioEntregadoAhora": false,
+      "mensaje": "Botón 3: no era el ganador. Puede seguir intentando."
+    }
+  ],
+  "creado_en": "2026-06-07T20:21:49.824Z",
+  "reiniciado_manual": true,
+  "actualizado_en": "2026-06-07T20:29:07.130Z",
+  "premio_entregado_en": "2026-06-07T20:21:59.459Z"
 }

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puerta Automática</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <h1>🐾 Smart Pet</h1>
+        <nav>
+            <a href="../index.html">📊 Dashboard</a>
+            <a href="comida.html">🍖 Comida</a>
+            <a href="agua.html">💧 Agua</a>
+            <a href="sensores.html">📡 Sensores</a>
+            <a href="puerta.html" class="active">🚪 Puerta</a>
+            <a href="comunicacion.html">📢 Comunicación</a>
+            <a href="juego-botones.html">🎮 Juego</a>
+            <a href="lanzador-pelotas.html" >🎾 Pelotas</a>
+            <a href="configuracion.html">⚙️ Configuración</a>
+        </nav>
+    </aside>
+
+    <main class="container">
+        <header class="header">
+            <h1>🚪 Puerta Automática</h1>
+            <p>Abre, cierra o programa una puerta para tu mascota</p>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <h2>Control Manual</h2>
+
+                <div class="status">
+                    <p>
+                        <span class="status-label">Estado:</span>
+                        <span class="status-value" id="estadoPuerta">--</span>
+                    </p>
+                    <p>
+                        <span class="status-label">Arduino:</span>
+                        <span class="status-value" id="estadoArduino">--</span>
+                    </p>
+                </div>
+
+                <button id="abrirBtn" class="btn btn-primary">🚪 Abrir</button>
+                <button id="cerrarBtn" class="btn btn-secondary">🔒 Cerrar</button>
+            </div>
+
+            <div class="card">
+                <h2>Apertura Temporal</h2>
+
+                <div class="form-group">
+                    <label for="duracionTemporal">Duración abierta (segundos):</label>
+                    <input type="number" id="duracionTemporal" value="3" min="1" max="60">
+                </div>
+
+                <button id="abrirTemporalBtn" class="btn btn-primary">
+                    ⏱ Abrir temporalmente
+                </button>
+            </div>
+
+            <div class="card">
+                <h2>Programación</h2>
+
+                <div class="form-group">
+                    <label for="intervaloMinutos">Abrir cada cuántos minutos:</label>
+                    <input type="number" id="intervaloMinutos" value="5" min="1" max="1440">
+                </div>
+
+                <div class="form-group">
+                    <label for="duracionProgramada">Duración abierta (segundos):</label>
+                    <input type="number" id="duracionProgramada" value="3" min="1" max="60">
+                </div>
+
+                <button id="programarBtn" class="btn btn-primary">💾 Programar</button>
+                <button id="detenerProgramacionBtn" class="btn btn-danger">⛔ Detener</button>
+            </div>
+
+            <div class="card">
+                <h2>Estado de Programación</h2>
+                <div id="programacionPuerta">
+                    <p style="color:#9E9E9E;">Cargando...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="alertContainerPuerta" style="position: fixed; bottom: 20px; right: 20px; max-width: 320px; z-index: 9999;"></div>
+    </main>
+
+    <script src="../js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarEstadoPuerta();
+
+            document.getElementById('abrirBtn').addEventListener('click', abrirPuerta);
+            document.getElementById('cerrarBtn').addEventListener('click', cerrarPuerta);
+            document.getElementById('abrirTemporalBtn').addEventListener('click', abrirTemporal);
+            document.getElementById('programarBtn').addEventListener('click', programarPuerta);
+            document.getElementById('detenerProgramacionBtn').addEventListener('click', detenerProgramacion);
+
+            setInterval(cargarEstadoPuerta, 5000);
+        });
+
+        async function cargarEstadoPuerta() {
+            const data = await PuertaApi.obtenerEstado();
+
+            if (!data.success) {
+                mostrarAlerta(data.error, 'error');
+                return;
+            }
+
+            document.getElementById('estadoPuerta').textContent = data.estado || '--';
+            document.getElementById('estadoArduino').textContent = data.arduino_conectado ? 'Conectado' : 'No conectado';
+
+            const p = data.programacion || {};
+            document.getElementById('programacionPuerta').innerHTML = p.activa
+                ? `<p>Activa: cada ${p.intervalo_minutos} min por ${p.duracion_segundos}s</p>`
+                : `<p style="color:#9E9E9E;">Sin programación activa</p>`;
+        }
+
+        async function abrirPuerta() {
+            const data = await PuertaApi.abrir();
+            manejarRespuesta(data);
+        }
+
+        async function cerrarPuerta() {
+            const data = await PuertaApi.cerrar();
+            manejarRespuesta(data);
+        }
+
+        async function abrirTemporal() {
+            const segundos = document.getElementById('duracionTemporal').value;
+            const data = await PuertaApi.abrirTemporal(segundos);
+            manejarRespuesta(data);
+        }
+
+        async function programarPuerta() {
+            const intervalo = document.getElementById('intervaloMinutos').value;
+            const duracion = document.getElementById('duracionProgramada').value;
+
+            const data = await PuertaApi.programar(intervalo, duracion);
+            manejarRespuesta(data);
+        }
+
+        async function detenerProgramacion() {
+            const data = await PuertaApi.detenerProgramacion();
+            manejarRespuesta(data);
+        }
+
+        function manejarRespuesta(data) {
+            if (data.success) {
+                mostrarAlerta(data.message, 'success');
+                cargarEstadoPuerta();
+            } else {
+                mostrarAlerta(data.error, 'error');
+            }
+        }
+
+        function mostrarAlerta(mensaje, tipo) {
+            const clases = {
+                success: 'alert-success',
+                error: 'alert-error',
+                warning: 'alert-warning',
+                info: 'alert-info'
+            };
+
+            const alerta = document.createElement('div');
+            alerta.className = `alert ${clases[tipo] || 'alert-info'}`;
+            alerta.textContent = mensaje;
+
+            document.getElementById('alertContainerPuerta').appendChild(alerta);
+
+            setTimeout(() => alerta.remove(), 4000);
+        }
+    </script>
+</body>
+</html>

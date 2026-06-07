@@ -1,80 +1,176 @@
 #include <Servo.h>
 
-const unsigned long SERIAL_BAUDRATE = 9600;
+// ================================================================
+// LANZADOR DE PELOTAS - SMART PET HOME
+// ================================================================
 
-const int SERVO_PELOTA_IZQ_PIN = 5;
-const int SERVO_PELOTA_DER_PIN = 6;
+// Según el plan de defensa:
+// MG90S 360 izquierdo → D5
+// MG90S 360 derecho   → D6
 
-// En servos 360 grados:
-// 90 normalmente es detenido.
-// 0 y 180 giran en direcciones contrarias.
-// Puede variar un poco según el servo; ajustar si hace falta.
-const int STOP_360 = 90;
-const int IZQ_LANZAR = 180;
-const int DER_LANZAR = 0;
+const int LEFT_SERVO_PIN = 5;
+const int RIGHT_SERVO_PIN = 9;
 
-const int DURACION_LANZAMIENTO_MS = 600;
-const int PAUSA_ENTRE_PELOTAS_MS = 800;
-const int MAX_PELOTAS = 5;
+Servo leftServo;
+Servo rightServo;
 
-Servo servoIzq;
-Servo servoDer;
+// Servos 360:
+// 1500 = detenido aproximadamente.
+// Si giran mal, ajusta estos valores.
+const int SERVO_STOP = 1500;
+const int LEFT_FORWARD = 1700;
+const int RIGHT_FORWARD = 1300;
+
+const unsigned long SHOT_TIME_MS = 850;
+const unsigned long PAUSE_BETWEEN_SHOTS_MS = 300;
+
+bool launching = false;
+
+int targetShots = 0;
+int currentShot = 0;
+
+enum LauncherState {
+  IDLE,
+  SPINNING,
+  PAUSE
+};
+
+LauncherState launcherState = IDLE;
+
+unsigned long stateStartTime = 0;
 
 void setup() {
-  Serial.begin(SERIAL_BAUDRATE);
-  servoIzq.attach(SERVO_PELOTA_IZQ_PIN);
-  servoDer.attach(SERVO_PELOTA_DER_PIN);
-  detenerServos();
+  Serial.begin(9600);
+
+  leftServo.attach(LEFT_SERVO_PIN);
+  rightServo.attach(RIGHT_SERVO_PIN);
+
+  stopMotors();
+
   Serial.println("SMART_PET_BALL_LAUNCHER:READY");
 }
 
 void loop() {
-  if (!Serial.available()) return;
+  readSerialCommand();
+  updateLauncher();
+}
 
-  String comando = Serial.readStringUntil('\n');
-  comando.trim();
+void readSerialCommand() {
+  if (!Serial.available()) {
+    return;
+  }
 
-  if (comando == "PING") {
+  String command = Serial.readStringUntil('\n');
+  command.trim();
+
+  if (command.length() == 0) {
+    return;
+  }
+
+  processCommand(command);
+}
+
+void processCommand(String command) {
+if (command.startsWith("BALL_LAUNCH:")) {
+  int amount = command.substring(12).toInt();
+
+  if (amount < 1) {
+    amount = 1;
+  }
+
+  if (amount > 5) {
+    amount = 5;
+  }
+
+  startLaunch(amount);
+
+  Serial.println("BALL:LAUNCH:OK");
+  return;
+}
+
+if (command == "BALL_STOP") {
+  stopLaunch();
+  Serial.println("BALL:STOP:OK");
+  return;
+}
+
+  if (command == "PING") {
     Serial.println("PONG");
     return;
   }
 
-  if (comando.startsWith("BALL_LAUNCH:")) {
-    int cantidad = comando.substring(12).toInt();
-    lanzarPelotas(cantidad);
-    Serial.println("BALL:OK");
-    return;
-  }
-
-  if (comando == "BALL_STOP") {
-    detenerServos();
-    Serial.println("BALL:STOPPED");
-    return;
-  }
-
   Serial.print("ERROR:UNKNOWN_COMMAND:");
-  Serial.println(comando);
+  Serial.println(command);
 }
 
-void lanzarPelotas(int cantidad) {
-  if (cantidad < 1) cantidad = 1;
-  if (cantidad > MAX_PELOTAS) cantidad = MAX_PELOTAS;
+void startLaunch(int amount) {
+  targetShots = amount;
+  currentShot = 0;
+  launching = true;
 
-  for (int i = 1; i <= cantidad; i++) {
-    servoIzq.write(IZQ_LANZAR);
-    servoDer.write(DER_LANZAR);
-    delay(DURACION_LANZAMIENTO_MS);
+  startNextShot();
+}
 
-    detenerServos();
+void stopLaunch() {
+  launching = false;
+  launcherState = IDLE;
+  targetShots = 0;
+  currentShot = 0;
+  stopMotors();
+}
 
-    Serial.print("BALL:SHOT:");
-    Serial.println(i);
+void startNextShot() {
+  if (!launching) {
+    return;
+  }
 
-    delay(PAUSA_ENTRE_PELOTAS_MS);
+  currentShot++;
+
+  Serial.print("BALL:SHOT:");
+  Serial.println(currentShot);
+
+  spinMotors();
+
+  launcherState = SPINNING;
+  stateStartTime = millis();
+}
+
+void updateLauncher() {
+  if (!launching) {
+    return;
+  }
+
+  unsigned long now = millis();
+
+  if (launcherState == SPINNING) {
+    if (now - stateStartTime >= SHOT_TIME_MS) {
+      stopMotors();
+
+      launcherState = PAUSE;
+      stateStartTime = now;
+    }
+
+    return;
+  }
+
+  if (launcherState == PAUSE) {
+    if (now - stateStartTime >= PAUSE_BETWEEN_SHOTS_MS) {
+      if (currentShot >= targetShots) {
+        stopLaunch();
+        Serial.println("BALL:DONE");
+      } else {
+        startNextShot();
+      }
+    }
   }
 }
 
-void detenerServos() {
-  servoIzq.write(STOP_360);
-  servoDer.write(STOP_360);
+void spinMotors() {
+  leftServo.writeMicroseconds(LEFT_FORWARD);
+  rightServo.writeMicroseconds(RIGHT_FORWARD);
+}
+
+void stopMotors() {
+  leftServo.writeMicroseconds(SERVO_STOP);
+  rightServo.writeMicroseconds(SERVO_STOP);
 }
