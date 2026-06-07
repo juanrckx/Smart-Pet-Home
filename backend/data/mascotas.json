@@ -1,3 +1,17 @@
 {
-  "mascotas": []
+  "mascotas": [
+    {
+      "id": "mascota_a97b6106-8892-427d-8bd1-2d3d71f1251d",
+      "nombre": "Jack1",
+      "tipo": "perro",
+      "raza": "saguate",
+      "edad": 6,
+      "peso": 4,
+      "foto": "https://png.pngtree.com/png-clipart/20250121/original/pngtree-dog-picture-png-image_20290599.png",
+      "notas": "bañaso",
+      "principal": true,
+      "creada_en": "2026-06-07T21:56:32.007Z",
+      "actualizada_en": "2026-06-07T22:01:21.213Z"
+    }
+  ]
 }

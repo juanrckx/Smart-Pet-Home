@@ -358,9 +358,10 @@ window.AguaApi = AguaApi;
 window.EventosApi = EventosApi;
 window.DispositivosApi = DispositivosApi;
 window.SensoresApi = SensoresApi;
-window.MascotasApi = MascotasApi;
-window.MascotaApi = MascotasApi;
 window.JuegoBotonesApi = JuegoBotonesApi;
 window.PuertaApi = PuertaApi;
 window.ComunicacionApi = ComunicacionApi;
 window.LanzadorPelotasApi = LanzadorPelotasApi;
+
+window.MascotasApi = MascotasApi;
+window.MascotaApi = MascotasApi;
