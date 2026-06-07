@@ -1,0 +1,12 @@
+{
+  "comida": {
+    "gramosPorDefecto": 100
+  },
+  "agua": {
+    "duracionPorDefectoMs": 3000
+  },
+  "temperatura": {
+    "minima": 18,
+    "maxima": 30
+  }
+}

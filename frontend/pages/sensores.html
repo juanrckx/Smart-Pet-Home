@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensores - Smart Pet Home</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <h1>🐾 Smart Pet</h1>
+        <nav>
+            <a href="../index.html">📊 Dashboard</a>
+            <a href="comida.html">🍖 Comida</a>
+            <a href="agua.html">💧 Agua</a>
+            <a href="sensores.html" class="active">📡 Sensores</a>
+            <a href="configuracion.html">⚙️ Configuración</a>
+        </nav>
+    </aside>
+
+    <main class="container">
+        <header class="header">
+            <h1>📡 Sensores</h1>
+            <p>Monitorea temperatura y presencia de tu mascota</p>
+        </header>
+
+        <div class="grid">
+            <!-- TEMPERATURA -->
+            <div class="card card-sensores">
+                <h2>
+                    <span class="indicator-light indicator-yellow" id="tempIndicador"></span>
+                    Sensor de Temperatura
+                </h2>
+
+                <div class="status">
+                    <p>
+                        <span class="status-label">Última lectura:</span>
+                        <span class="status-value" id="ultimaTemperatura">--°C</span>
+                    </p>
+                    <p>
+                        <span class="status-label">Estado:</span>
+                        <span class="status-value" id="estadoTemperatura">Sin datos</span>
+                    </p>
+                </div>
+
+                <button id="registrarTemperaturaBtn" class="btn btn-primary">
+                    🌡 Registrar Temperatura
+                </button>
+            </div>
+
+            <!-- PRESENCIA -->
+            <div class="card card-sensores">
+                <h2>
+                    <span class="indicator-light indicator-green" id="presenciaIndicador"></span>
+                    Sensor de Presencia
+                </h2>
+
+                <div class="status">
+                    <p>
+                        <span class="status-label">Presencia:</span>
+                        <span class="status-value" id="ultimaPresencia">No detectado</span>
+                    </p>
+                    <p>
+                        <span class="status-label">Última lectura:</span>
+                        <span class="status-value" id="horaPresencia">--</span>
+                    </p>
+                </div>
+
+                <button id="registrarPresenciaBtn" class="btn btn-primary">
+                    🐾 Simular Presencia
+                </button>
+
+                <button id="registrarSinPresenciaBtn" class="btn btn-secondary">
+                    🚫 Simular Sin Presencia
+                </button>
+            </div>
+
+            <!-- ESTADO DE SENSORES -->
+            <div class="card card-sensores">
+                <h2>📋 Estado de Sensores</h2>
+
+                <div id="estadoSensores">
+                    <p style="color: #9E9E9E;">Cargando estado...</p>
+                </div>
+
+                <button id="recargarSensoresBtn" class="btn btn-secondary btn-small">
+                    🔄 Recargar
+                </button>
+            </div>
+
+            <!-- HISTORIAL -->
+            <div class="card card-sensores">
+                <h2>📅 Historial de Sensores</h2>
+
+                <div id="historialSensores" style="max-height: 280px; overflow-y: auto;">
+                    <p style="color: #9E9E9E;">Cargando historial...</p>
+                </div>
+
+                <button id="recargarHistorialBtn" class="btn btn-secondary btn-small">
+                    🔄 Recargar Historial
+                </button>
+            </div>
+        </div>
+
+        <div
+            id="alertContainerSensores"
+            style="position: fixed; bottom: 20px; right: 20px; max-width: 320px; z-index: 9999;">
+        </div>
+    </main>
+
+    <script src="../js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarSensores();
+            cargarHistorialSensores();
+
+            document
+                .getElementById('registrarTemperaturaBtn')
+                .addEventListener('click', registrarTemperatura);
+
+            document
+                .getElementById('registrarPresenciaBtn')
+                .addEventListener('click', () => registrarPresencia(true));
+
+            document
+                .getElementById('registrarSinPresenciaBtn')
+                .addEventListener('click', () => registrarPresencia(false));
+
+            document
+                .getElementById('recargarSensoresBtn')
+                .addEventListener('click', cargarSensores);
+
+            document
+                .getElementById('recargarHistorialBtn')
+                .addEventListener('click', cargarHistorialSensores);
+        });
+
+        async function registrarTemperatura() {
+            const input = document.getElementById('temperaturaInput');
+            const valor = input.value;
+
+            const data = await SensoresApi.registrarTemperatura(valor);
+
+            if (data.success) {
+                mostrarAlertaSensores(data.message, data.alerta ? 'warning' : 'success');
+                cargarSensores();
+                cargarHistorialSensores();
+            } else {
+                mostrarAlertaSensores(data.error, 'error');
+            }
+        }
+
+        async function registrarPresencia(presente) {
+            const data = await SensoresApi.registrarPresencia(presente);
+
+            if (data.success) {
+                mostrarAlertaSensores(data.message, presente ? 'success' : 'info');
+                cargarSensores();
+                cargarHistorialSensores();
+            } else {
+                mostrarAlertaSensores(data.error, 'error');
+            }
+        }
+
+        async function cargarSensores() {
+            await Promise.allSettled([
+                cargarEstadoSensores(),
+                cargarUltimaTemperatura(),
+                cargarUltimaPresencia()
+            ]);
+        }
+
+        async function cargarEstadoSensores() {
+            const contenedor = document.getElementById('estadoSensores');
+            const data = await SensoresApi.obtenerEstado();
+
+            if (!data.success) {
+                contenedor.innerHTML = `
+                    <p style="color: #dc3545;">
+                        Error al cargar sensores.
+                    </p>
+                `;
+                return;
+            }
+
+            if (!data.sensores || data.sensores.length === 0) {
+                contenedor.innerHTML = `
+                    <p style="color: #9E9E9E;">
+                        No hay sensores registrados.
+                    </p>
+                `;
+                return;
+            }
+
+            contenedor.innerHTML = data.sensores.map((sensor) => {
+                const estado = sensor.estado || 'desconocido';
+
+                return `
+                    <div style="border-left: 3px solid #F2C94C; padding-left: 12px; margin: 10px 0;">
+                        <p style="margin: 0;">
+                            <strong>${escaparHTML(sensor.nombre)}</strong>
+                        </p>
+                        <p style="margin: 0; color: #9E9E9E;">
+                            Estado: ${escaparHTML(estado)}
+                        </p>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function cargarUltimaTemperatura() {
+            const tempEl = document.getElementById('ultimaTemperatura');
+            const estadoEl = document.getElementById('estadoTemperatura');
+            const indicador = document.getElementById('tempIndicador');
+
+            const data = await EventosApi.obtener({
+                accion: 'lectura_temperatura',
+                limite: 1
+            });
+
+            if (!data.success || data.eventos.length === 0) {
+                tempEl.textContent = '--°C';
+                estadoEl.textContent = 'Sin datos';
+                indicador.className = 'indicator-light indicator-yellow';
+                return;
+            }
+
+            const evento = data.eventos[0];
+
+            tempEl.textContent = `${evento.valor}°C`;
+            estadoEl.textContent = evento.estado_temperatura || 'normal';
+
+            if (evento.alerta) {
+                indicador.className = 'indicator-light indicator-red';
+                estadoEl.style.color = '#dc3545';
+            } else {
+                indicador.className = 'indicator-light indicator-green';
+                estadoEl.style.color = '';
+            }
+        }
+
+        async function cargarUltimaPresencia() {
+            const presenciaEl = document.getElementById('ultimaPresencia');
+            const horaEl = document.getElementById('horaPresencia');
+            const indicador = document.getElementById('presenciaIndicador');
+
+            const data = await EventosApi.obtener({
+                accion: 'lectura_presencia',
+                limite: 1
+            });
+
+            if (!data.success || data.eventos.length === 0) {
+                presenciaEl.textContent = 'No detectado';
+                horaEl.textContent = '--';
+                indicador.className = 'indicator-light indicator-yellow';
+                return;
+            }
+
+            const evento = data.eventos[0];
+
+            presenciaEl.textContent = evento.detectado
+                ? 'Detectado'
+                : 'No detectado';
+
+            horaEl.textContent = formatearHora(evento.timestamp);
+
+            indicador.className = evento.detectado
+                ? 'indicator-light indicator-green'
+                : 'indicator-light indicator-yellow';
+        }
+
+        async function cargarHistorialSensores() {
+            const contenedor = document.getElementById('historialSensores');
+
+            contenedor.innerHTML = `
+                <p style="color: #9E9E9E;">Cargando historial...</p>
+            `;
+
+            const data = await EventosApi.obtener({
+                tipo: 'sensor',
+                limite: 20
+            });
+
+            if (!data.success) {
+                contenedor.innerHTML = `
+                    <p style="color: #dc3545;">
+                        Error al cargar historial.
+                    </p>
+                `;
+                return;
+            }
+
+            if (!data.eventos || data.eventos.length === 0) {
+                contenedor.innerHTML = `
+                    <p style="color: #9E9E9E;">
+                        Sin registros de sensores.
+                    </p>
+                `;
+                return;
+            }
+
+            contenedor.innerHTML = data.eventos.map((evento) => {
+                return `
+                    <div style="border-left: 3px solid ${evento.alerta ? '#dc3545' : '#F2C94C'}; padding-left: 12px; margin: 10px 0;">
+                        <p style="margin: 0;">
+                            <strong>${formatearHora(evento.timestamp)}</strong>
+                            — ${escaparHTML(obtenerTextoSensor(evento))}
+                        </p>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function obtenerTextoSensor(evento) {
+            if (evento.mensaje) return evento.mensaje;
+
+            if (evento.accion === 'lectura_temperatura') {
+                return `Temperatura: ${evento.valor}°C`;
+            }
+
+            if (evento.accion === 'lectura_presencia') {
+                return evento.detectado
+                    ? 'Presencia detectada'
+                    : 'Sin presencia detectada';
+            }
+
+            return 'Lectura de sensor';
+        }
+
+        function mostrarAlertaSensores(mensaje, tipo) {
+            const clases = {
+                success: 'alert-success',
+                error: 'alert-error',
+                warning: 'alert-warning',
+                info: 'alert-info'
+            };
+
+            const alerta = document.createElement('div');
+            alerta.className = `alert ${clases[tipo] || 'alert-info'}`;
+            alerta.innerHTML = `<div>${escaparHTML(mensaje)}</div>`;
+
+            document
+                .getElementById('alertContainerSensores')
+                .appendChild(alerta);
+
+            setTimeout(() => alerta.remove(), 4000);
+        }
+
+        function formatearHora(timestamp) {
+            if (!timestamp) return '--';
+
+            const fecha = new Date(timestamp);
+
+            if (Number.isNaN(fecha.getTime())) return '--';
+
+            return fecha.toLocaleTimeString('es-CR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function escaparHTML(texto) {
+            return String(texto)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+    </script>
+</body>
+</html>

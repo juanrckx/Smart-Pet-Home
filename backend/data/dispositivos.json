@@ -1,0 +1,38 @@
+{
+  "dispositivos": [
+    {
+      "id": "dispensador_comida",
+      "nombre": "Dispensador de comida",
+      "tipo": "dispensador",
+      "categoria": "comida",
+      "estado": "activo",
+      "nivel": 31
+    },
+    {
+      "id": "dispensador_agua",
+      "nombre": "Dispensador de agua",
+      "tipo": "dispensador",
+      "categoria": "agua",
+      "estado": "activo",
+      "nivel": 34
+    },
+    {
+      "id": "sensor_temperatura",
+      "nombre": "Sensor de temperatura",
+      "tipo": "sensor",
+      "categoria": "temperatura",
+      "estado": "activo",
+      "ultima_lectura": 23,
+      "ultima_actualizacion": "2026-06-06T05:16:40.092Z"
+    },
+    {
+      "id": "sensor_movimiento",
+      "nombre": "Sensor de presencia",
+      "tipo": "sensor",
+      "categoria": "presencia",
+      "estado": "activo",
+      "ultima_lectura": false,
+      "ultima_actualizacion": "2026-06-06T05:21:24.292Z"
+    }
+  ]
+}

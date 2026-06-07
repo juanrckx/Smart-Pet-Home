@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
-    <!-- SIDEBAR -->
     <aside class="sidebar">
         <h1>🐾 Smart Pet</h1>
         <nav>
@@ -19,7 +18,6 @@
         </nav>
     </aside>
 
-    <!-- CONTENEDOR -->
     <main class="container">
         <header class="header">
             <h1>💧 Dispensador de Agua</h1>
@@ -29,39 +27,37 @@
         <div class="grid">
             <!-- TARJETA 1: DISPENSAR AGUA -->
             <div class="card card-agua">
-                <h2>🚰 Dispensar Agua</h2>
+                <h2>
+                    <span class="indicator-light indicator-green" id="aguaIndicador"></span>
+                    Dispensar Agua
+                </h2>
 
                 <div class="form-group">
                     <label for="duracionAgua">Tiempo de apertura (segundos):</label>
-                    <input 
-                        type="number" 
-                        id="duracionAgua" 
-                        min="1" 
-                        max="10" 
+                    <input
+                        type="number"
+                        id="duracionAgua"
+                        min="1"
+                        max="10"
                         value="3"
                         placeholder="Tiempo en segundos (1-10)"
                     >
-                    <small style="color: #9E9E9E;">
-                        Rango: 1-10 segundos (recomendado 3-5)
-                    </small>
+                    <small style="color: #9E9E9E;">Rango: 1-10 segundos (recomendado 3-5)</small>
                 </div>
 
-                <button id="dispensarAguaBtn" class="btn btn-primary" onclick="dispensarAgua()">
+                <button id="dispensarAguaBtn" class="btn btn-primary">
                     ▶ ABRIR AGUA
                 </button>
 
-                <!-- RESULTADO -->
                 <div id="resultadoAgua" style="margin-top: 15px; display: none;"></div>
 
-                <!-- LOADING -->
                 <div id="loadingAgua" style="display: none; margin-top: 15px;">
                     <p style="color: #F57C00; font-weight: bold;">⏳ Abriendo compuerta...</p>
                 </div>
 
-                <!-- INFO -->
                 <div class="status" style="margin-top: 20px;">
                     <p style="margin: 0;">
-                        <strong>💡 Nota:</strong> La compuerta se cerrará automáticamente 
+                        <strong>💡 Nota:</strong> La compuerta se cerrará automáticamente
                         después del tiempo especificado.
                     </p>
                 </div>
@@ -77,7 +73,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="alertaNivel">Recordar llenar depósito:</label>
+                    <label for="recordatorio">Recordar llenar depósito:</label>
                     <select id="recordatorio">
                         <option value="1">Cada 1 hora</option>
                         <option value="2" selected>Cada 2 horas</option>
@@ -86,7 +82,7 @@
                     </select>
                 </div>
 
-                <button class="btn btn-secondary" onclick="guardarConfiguracionAgua()">
+                <button id="guardarConfigAguaBtn" class="btn btn-secondary">
                     💾 Guardar Configuración
                 </button>
             </div>
@@ -94,12 +90,10 @@
             <!-- TARJETA 3: HISTORIAL -->
             <div class="card card-agua">
                 <h2>📅 Historial</h2>
-
                 <div id="historialAgua" style="max-height: 250px; overflow-y: auto;">
-                    <p style="color: #9E9E9E;">Sin registros aún</p>
+                    <p style="color: #9E9E9E;">Cargando historial...</p>
                 </div>
-
-                <button class="btn btn-secondary btn-small" onclick="cargarHistorialAgua()" style="margin-top: 10px;">
+                <button id="recargarAguaBtn" class="btn btn-secondary btn-small" style="margin-top: 10px;">
                     🔄 Recargar
                 </button>
             </div>
@@ -107,7 +101,6 @@
             <!-- TARJETA 4: INSTRUCCIONES -->
             <div class="card card-agua">
                 <h2>ℹ️ ¿Cómo funciona?</h2>
-                
                 <div style="font-size: 14px; line-height: 1.8;">
                     <p><strong>1. Llenar depósito:</strong> Coloca agua fresca en el recipiente</p>
                     <p><strong>2. Ajusta tiempo:</strong> Selecciona segundos (3-5 recomendado)</p>
@@ -118,111 +111,118 @@
             </div>
         </div>
 
-        <!-- ALERTAS -->
         <div id="alertContainerAgua" style="position: fixed; bottom: 20px; right: 20px; max-width: 300px; z-index: 9999;"></div>
     </main>
 
-    <!-- SCRIPTS -->
     <script src="../js/api.js"></script>
     <script>
-        // Al cargar página
+        // ================================================================
+        // CONTROLADOR DE LA PÁGINA DE AGUA
+        //
+        // CAMBIOS RESPECTO AL ORIGINAL:
+        //   1. dispensarAgua() usa AguaApi.dispensar() en vez de fetch()
+        //   2. cargarHistorialAgua() usa EventosApi y lee datos reales
+        //   3. cargarConfiguracionGuardada() restaura preferencias del usuario
+        //   4. Botones con addEventListener, sin onclick en el HTML
+        // ================================================================
+
         document.addEventListener('DOMContentLoaded', () => {
             cargarHistorialAgua();
+            cargarConfiguracionGuardada();
+
+            document.getElementById('dispensarAguaBtn').addEventListener('click', dispensarAgua);
+            document.getElementById('recargarAguaBtn').addEventListener('click', cargarHistorialAgua);
+            document.getElementById('guardarConfigAguaBtn').addEventListener('click', guardarConfiguracion);
         });
 
+        // ── Dispensar ────────────────────────────────────────────────────
         async function dispensarAgua() {
-            const duracion = document.getElementById('duracionAgua').value;
-            const btn = document.getElementById('dispensarAguaBtn');
+            const segundos  = document.getElementById('duracionAgua').value;
+            const btn       = document.getElementById('dispensarAguaBtn');
             const resultado = document.getElementById('resultadoAgua');
-            const loading = document.getElementById('loadingAgua');
+            const loading   = document.getElementById('loadingAgua');
 
-            // Validación
-            if (!duracion || duracion < 1 || duracion > 10) {
-                mostrarAlertaAgua('❌ Ingresa entre 1 y 10 segundos', 'error');
+            btn.disabled            = true;
+            loading.style.display   = 'block';
+            resultado.style.display = 'none';
+
+            // AguaApi convierte segundos → ms internamente
+            const data = await AguaApi.dispensar(segundos);
+
+            if (data.success) {
+                mostrarResultadoAgua(`✅ ${data.message}`, 'success');
+                mostrarAlertaAgua('✅ Agua dispensada', 'success');
+                cargarHistorialAgua();
+            } else {
+                mostrarResultadoAgua(`❌ ${data.error}`, 'error');
+                mostrarAlertaAgua(`❌ ${data.error}`, 'error');
+            }
+
+            btn.disabled          = false;
+            loading.style.display = 'none';
+        }
+
+        // ── Historial real desde eventos.json ────────────────────────────
+        async function cargarHistorialAgua() {
+            const contenedor = document.getElementById('historialAgua');
+            contenedor.innerHTML = '<p style="color: #9E9E9E;">Cargando...</p>';
+
+            const data = await EventosApi.obtener({ dispositivo: 'dispensador_agua', limite: 20 });
+
+            if (!data.success || data.eventos.length === 0) {
+                contenedor.innerHTML = '<p style="color: #9E9E9E;">Sin registros aún</p>';
                 return;
             }
 
-            btn.disabled = true;
-            loading.style.display = 'block';
-            resultado.style.display = 'none';
-
-            try {
-                const response = await fetch('http://localhost:3000/api/water/dispense', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ duracion: parseInt(duracion) * 1000 })
+            contenedor.innerHTML = data.eventos.map(evento => {
+                const hora = new Date(evento.timestamp).toLocaleTimeString('es-CR', {
+                    hour: '2-digit', minute: '2-digit'
                 });
+                return `
+                    <div style="border-left: 3px solid #4FC3F7; padding-left: 12px; margin: 10px 0;">
+                        <p><strong>${hora}</strong> — Agua abierta ${evento.duracion_s}s</p>
+                    </div>
+                `;
+            }).join('');
+        }
 
-                const data = await response.json();
-
-                if (data.success) {
-                    mostrarResultadoAgua(`✅ ${data.message}`, 'success');
-                    mostrarAlertaAgua('✅ Agua dispensada', 'success');
-                    cargarHistorialAgua();
-                } else {
-                    mostrarResultadoAgua(`❌ ${data.error || 'Error'}`, 'error');
-                }
-            } catch (error) {
-                mostrarResultadoAgua(`❌ Error: ${error.message}`, 'error');
-            } finally {
-                btn.disabled = false;
-                loading.style.display = 'none';
+        // ── Configuración ────────────────────────────────────────────────
+        function cargarConfiguracionGuardada() {
+            const config = JSON.parse(localStorage.getItem('waterConfig') || '{}');
+            if (config.duracionDefault) {
+                document.getElementById('duracionDefault').value = config.duracionDefault;
+                document.getElementById('duracionAgua').value    = config.duracionDefault;
+            }
+            if (config.recordatorio) {
+                document.getElementById('recordatorio').value = config.recordatorio;
             }
         }
 
-        function mostrarResultadoAgua(mensaje, tipo) {
-            const resultado = document.getElementById('resultadoAgua');
-            resultado.textContent = mensaje;
-            resultado.className = tipo === 'success' ? 'alert alert-success' : 'alert alert-error';
-            resultado.style.display = 'block';
-        }
-
-        function cargarHistorialAgua() {
-            // Mock data por ahora
-            const html = `
-                <div style="border-left: 3px solid #4FC3F7; padding-left: 12px; margin: 10px 0;">
-                    <p><strong>14:32</strong> - Agua abierta 3s</p>
-                </div>
-                <div style="border-left: 3px solid #4FC3F7; padding-left: 12px; margin: 10px 0;">
-                    <p><strong>12:15</strong> - Agua abierta 5s</p>
-                </div>
-                <div style="border-left: 3px solid #4FC3F7; padding-left: 12px; margin: 10px 0;">
-                    <p><strong>08:45</strong> - Agua abierta 3s</p>
-                </div>
-            `;
-            document.getElementById('historialAgua').innerHTML = html;
-        }
-
-        function guardarConfiguracionAgua() {
-            const duracion = document.getElementById('duracionDefault').value;
-            const recordatorio = document.getElementById('recordatorio').value;
-
-            localStorage.setItem('waterConfig', JSON.stringify({
-                duracionDefault: duracion,
-                recordatorio: recordatorio
-            }));
-
+        function guardarConfiguracion() {
+            const config = {
+                duracionDefault: document.getElementById('duracionDefault').value,
+                recordatorio:    document.getElementById('recordatorio').value
+            };
+            localStorage.setItem('waterConfig', JSON.stringify(config));
+            document.getElementById('duracionAgua').value = config.duracionDefault;
             mostrarAlertaAgua('✅ Configuración guardada', 'success');
         }
 
+        // ── UI helpers ───────────────────────────────────────────────────
+        function mostrarResultadoAgua(mensaje, tipo) {
+            const el         = document.getElementById('resultadoAgua');
+            el.textContent   = mensaje;
+            el.className     = tipo === 'success' ? 'alert alert-success' : 'alert alert-error';
+            el.style.display = 'block';
+        }
+
         function mostrarAlertaAgua(mensaje, tipo) {
-            const container = document.getElementById('alertContainerAgua');
-            const clases = {
-                'success': 'alert-success',
-                'error': 'alert-error',
-                'warning': 'alert-warning',
-                'info': 'alert-info'
-            };
-
+            const clases = { success: 'alert-success', error: 'alert-error', warning: 'alert-warning', info: 'alert-info' };
             const alerta = document.createElement('div');
-            alerta.className = 'alert ' + (clases[tipo] || 'alert-info');
-            alerta.innerHTML = '<div>' + mensaje + '</div>';
-
-            container.appendChild(alerta);
-
-            setTimeout(() => {
-                alerta.remove();
-            }, 4000);
+            alerta.className = `alert ${clases[tipo] || 'alert-info'}`;
+            alerta.innerHTML = `<div>${mensaje}</div>`;
+            document.getElementById('alertContainerAgua').appendChild(alerta);
+            setTimeout(() => alerta.remove(), 4000);
         }
     </script>
 </body>
