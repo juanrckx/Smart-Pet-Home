@@ -1,0 +1,9 @@
+{
+  "estado": "Cerrada",
+  "programacion": {
+    "activa": true,
+    "intervalo_minutos": 1,
+    "duracion_segundos": 3
+  },
+  "ultimo_cambio": "2026-06-07T03:02:58.264Z"
+}

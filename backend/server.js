@@ -26,8 +26,14 @@ const { initJSONFile,
 const dispositivosRouter = require('./routes/dispositivos');
 const eventosRouter = require('./routes/eventos');
 const mascotasRouter = require('./routes/mascotas');
-const { crearJuegoBotonesService } = require('./services/juego-botones-service');
+const {
+    crearJuegoBotonesService
+} = require('./services/juego-botones-service');
 const juegoBotonesRouter = require('./routes/juego-botones');
+const puertaRouter = require('./routes/puerta');
+const comunicacionRouter = require('./routes/comunicacion');
+const lanzadorPelotasRouter = require('./routes/lanzador-pelotas');
+
 const { match } = require('assert');
 const { access } = require('fs');
 
@@ -88,6 +94,35 @@ const JUEGO_BOTONES_BASE = {
     intentos: []
 };
 
+const PUERTA_BASE = {
+    estado: 'cerrada',
+    programacion: {
+        activa: false,
+        intervalo_minutos: null,
+        duracion_segundos: null
+    },
+    ultimo_cambio: null
+};
+
+const COMUNICACION_BASE = {
+    buzzer_ultimo_uso: null,
+    video_activo: false,
+    lcd_linea_1: '',
+    lcd_linea_2: '',
+    lcd_linea_3: '',
+    lcd_linea_4: '',
+    ultimo_cambio: null
+};
+
+const LANZADOR_PELOTAS_BASE = {
+    estado: 'listo',
+    ultimo_lanzamiento: null,
+    total_lanzamientos: 0,
+    pelotas_lanzadas_total: 0,
+    ultima_cantidad: 0,
+    ultimo_cambio: null
+};
+
 const CONFIGURACION_BASE = {
     comida: {
         gramosPorDefecto: 100
@@ -107,6 +142,9 @@ async function inicializarArchivosJSON(){
     await initJSONFile('juego-botones.json', JUEGO_BOTONES_BASE);
     await initJSONFile('dispositivos.json', DISPOSITIVOS_BASE);
     await initJSONFile('configuracion.json', CONFIGURACION_BASE);
+    await initJSONFile('puerta.json', PUERTA_BASE);
+    await initJSONFile('comunicacion.json', COMUNICACION_BASE);
+    await initJSONFile('lanzador-pelotas.json', LANZADOR_PELOTAS_BASE);
 
     console.log('[server] Archivos JSON verificados.');
 }
@@ -156,6 +194,9 @@ function configurarRutas() {
         app.use('/api/eventos', eventosRouter);
         app.use('/api/mascotas', mascotasRouter);
         app.use('/api/juego-botones', juegoBotonesRouter);
+        app.use('/api/puerta', puertaRouter);
+        app.use('/api/comunicacion', comunicacionRouter);
+        app.use('/api/lanzador-pelotas', lanzadorPelotasRouter);
     
         /**
          * Health check simple.

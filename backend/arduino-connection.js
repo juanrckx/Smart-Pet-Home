@@ -304,12 +304,21 @@ function inferirRespuestaEsperada(comando) {
         return 'GAME:OK';
     }
 
-    if (comando.startsWith('BALL_LAUNCH:')) {
-        return 'BALL:OK';
-    }
+    if (comando === 'DOOR_OPEN') return 'DOOR:OPEN';
+    if (comando === 'DOOR_CLOSE') return 'DOOR:CLOSE';
+    if (comando.startsWith('DOOR_OPEN_FOR:')) return 'DOOR:OK';
 
+    if (comando.startsWith('BUZZER_PLAY:')) return 'BUZZER:OK';
+    if (comando === 'LCD_VIDEO_ON') return 'LCD:OK';
+    if (comando === 'LCD_VIDEO_OFF') return 'LCD:OK';
+    if (comando.startsWith('LCD_TEXT:')) return 'LCD:OK';
+
+    if (comando.startsWith('BALL_LAUNCH:')) {
+        return 'BALL:LAUNCH:OK';
+    }
+    
     if (comando === 'BALL_STOP') {
-        return 'BALL:OK';
+        return 'BALL:STOP:OK';
     }
 
     if (comando === 'PING') {

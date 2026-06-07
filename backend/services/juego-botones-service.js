@@ -47,12 +47,35 @@ function obtenerTimestamp() {
 }
 
 function obtenerFecha() {
-    return new Int1.DateTimeFormar('en-CA', {
-        timeZone: 'Amercia/Costa_Rica',
+    return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Costa_Rica',
         year: 'numeric',
         month: '2-digit',
         day: '2-digit',
-    }).formar(new Date());
+    }).format(new Date());
+}
+
+function obtenerProximoReinicio() {
+    const ahora = new Date();
+
+    const fechaCR = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Costa_Rica',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    }).format(ahora);
+
+    const proximoReinicio = new Date(`${fechaCR}T06:00:00.000Z`);
+    proximoReinicio.setUTCDate(proximoReinicio.getUTCDate() + 1);
+
+    return proximoReinicio;
+}
+
+function obtenerSegundosRestantesParaPremio() {
+    const ahora = new Date();
+    const proximo = obtenerProximoReinicio();
+
+    return Math.max(0, Math.floor((proximo.getTime() - ahora.getTime()) / 1000));
 }
 
 function elegirBotonGanador() {
@@ -147,7 +170,7 @@ class JuegoBotonesRepository {
         };
     }
 
-    async reiniciarDia() {
+    async reiniciarEstadoDelDia() {
         const fechaHoy = obtenerFecha();
 
         const nuevoEstado = {
@@ -222,7 +245,13 @@ class JuegoBotonesService {
             premio_disponible: !estado.premioEntregado,
             total_intentos: Number(estado.totalIntentos || 0),
             ultimos_intentos: (estado.intentos || []).slice(0, 10),
-            arduino_conectado: this.arduino.estaDisponible()
+            arduino_conectado: this.arduino.estaDisponible(),
+            segundos_restantes_premio: estado.premioEntregado
+            ? obtenerSegundosRestantesParaPremio()
+            : 0,
+            proximo_premio_en: estado.premioEntregado
+            ? obtenerProximoReinicio().toISOString()
+            : null
         };
 
         if (DEBUG_JUEGO) {
@@ -251,7 +280,7 @@ class JuegoBotonesService {
                 await this.arduino.enviar(`REWARD:${DURACION_SERVO_PREMIO_MS}`, 'REWARD:OK');
                 mensaje = `¡Ganó! Botón ${botonElegido}. Premio dispensado.`;
             } else {
-                mensaje = `Ganó otra vez! Botón ${BotonElegido}, pero el premio de hoy ya fue entregado.`;
+                mensaje = `Ganó otra vez! Botón ${botonElegido}, pero el premio de hoy ya fue entregado.`;
             }
         } else{
             comandoResultado = await this.arduino.enviar(`GAME_LOSE:${botonElegido}`, 'GAME:OK');
@@ -316,7 +345,7 @@ class JuegoBotonesService {
     }
 
     async reiniciarDia() {
-        const estado = await this.juegoRepo.reiniciarDia();
+        const estado = await this.juegoRepo.reiniciarEstadoDelDia();
 
         await this.arduino.enviar('GAME_RESET_LEDS', 'GAME:OK');
 
@@ -360,3 +389,8 @@ function crearJuegoBotonesService() {
         arduino: new ArduinoGateway()
     });
 }
+
+module.exports = {
+    crearJuegoBotonesService,
+    JuegoBotonesService
+};

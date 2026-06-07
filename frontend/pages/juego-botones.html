@@ -14,7 +14,10 @@
             <a href="comida.html">🍖 Comida</a>
             <a href="agua.html">💧 Agua</a>
             <a href="sensores.html">📡 Sensores</a>
+            <a href="puerta.html">🚪 Puerta</a>
+            <a href="comunicacion.html">📢 Comunicación</a>
             <a href="juego-botones.html" class="active">🎮 Juego</a>
+            <a href="lanzador-pelotas.html" >🎾 Pelotas</a>
             <a href="configuracion.html">⚙️ Configuración</a>
         </nav>
     </aside>
@@ -45,6 +48,15 @@
                     <p>
                         <span class="status-label">Arduino:</span>
                         <span class="status-value" id="estadoArduino">--</span>
+                    </p>
+                    <p>
+                        <span class="status-label">Próximo premio:</span>
+                        <span class="status-value" id="proximoPremio">Disponible</span>
+                    </p>
+                    
+                    <p>
+                        <span class="status-label">Tiempo restante:</span>
+                        <span class="status-value" id="timerPremio">--:--:--</span>
                     </p>
                 </div>
 
@@ -105,6 +117,8 @@
 
     <script src="../js/api.js"></script>
     <script>
+        let segundosRestantePremio = 0;
+        let intervaloTimerPremio= null;
         document.addEventListener('DOMContentLoaded', () => {
             cargarEstadoJuego();
             cargarHistorialJuego();
@@ -146,7 +160,53 @@
             } else {
                 document.getElementById('premioDisponible').style.color = '#28a745';
             }
+
+            segundosRestantesPremio = Number(data.segundos_restantes_premio || 0);
+
+            actualizarTimerPremio();
+
+            if (intervaloTimerPremio) {
+                clearInterval(intervaloTimerPremio);
+            }
+
+            intervaloTimerPremio = setInterval(() => {
+                if (segundosRestantesPremio > 0) {
+                    segundosRestantesPremio--;
+                }
+
+                actualizarTimerPremio();
+            }, 1000);
         }
+
+        function actualizarTimerPremio() {
+            const proximoEl = document.getElementById('proximoPremio');
+            const timerEl = document.getElementById('timerPremio');
+
+            if (!proximoEl || !timerEl) return;
+
+            if (segundosRestantesPremio <= 0) {
+                proximoEl.textContent = 'Disponible';
+                proximoEl.style.color = '#28a745';
+                timerEl.textContent = '00:00:00';
+                timerEl.style.color = '#28a745';
+                return;
+            }
+
+            const horas = Math.floor(segundosRestantesPremio / 3600);
+            const minutos = Math.floor((segundosRestantesPremio % 3600) / 60);
+            const segundos = segundosRestantesPremio % 60;
+
+            proximoEl.textContent = 'Mañana';
+            proximoEl.style.color = '#dc3545';
+
+            timerEl.textContent = [
+                String(horas).padStart(2, '0'),
+                String(minutos).padStart(2, '0'),
+                String(segundos).padStart(2, '0')
+            ].join(':');
+
+            timerEl.style.color = '#dc3545';
+    }
 
         async function cargarHistorialJuego() {
             const contenedor = document.getElementById('historialJuego');
