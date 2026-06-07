@@ -1,177 +1,343 @@
 /**
- * arduino-connection.js
- * 
- * Gestiona la conexión serial con el Arduino
+ * backend/arduino-connection.js
+ *
+ * Gestiona la conexión serial con Arduino.
+ *
+ * Responsabilidades:
+ * - Detectar puerto Arduino.
+ * - Abrir conexión serial.
+ * - Enviar comandos a Arduino.
+ * - Esperar respuestas como DISPENSE:OK, WATER:OK, GAME:OK, etc.
+ * - Notificar al servidor cuando Arduino envía eventos como:
+ *   GAME_BUTTON:3
+ *   TEMP:24.5
+ *   PRESENCE:1
  */
 
-const { SerialPort } = require('serialport');
-const { ReadlineParser } = require('@serialport/parser-readline');
-const { obtenerPuertoArduino } = require('./utils/arduino-detection');
+let SerialPort;
+let ReadlineParser;
 
-// =============== ESTADO INTERNO ===============
+try {
+    ({ SerialPort } = require('serialport'));
+    ({ ReadlineParser } = require('@serialport/parser-readline'));
+} catch (error) {
+    console.error(
+        '[arduino-connection] No se pudieron cargar serialport o @serialport/parser-readline:',
+        error.message
+    );
+
+    SerialPort = null;
+    ReadlineParser = null;
+}
+
+const {
+    obtenerPuertoArduino
+} = require('./utils/arduino-detection');
+
+// ================================================================
+// ESTADO INTERNO
+// ================================================================
+
 let puertoArduino = null;
 let parser = null;
 let conectado = false;
+let intentandoReconectar = false;
 
-// Mapa de callbacks en espera: { 'dispense': resolveFn, 'water': resolveFn, ... }
-const callbacksEnEspera = {};
+const callbacksEnEspera = new Map();
+const manejadoresLineaSerial = new Set();
 
-// Cuánto tiempo esperar la respuesta del Arduino antes de dar error (ms)
-const TIEMPO_ESPERA_RESPUESTA = 8000;
+const BAUD_RATE = 9600;
+const TIEMPO_ESPERA_RESPUESTA_MS = 8000;
+const TIEMPO_REINTENTO_MS = 5000;
 
-// Cada cuánto intentar reconectar si se pierde la conexión (ms)
-const TIEMPO_REINTENTO_RECONEXION = 5000;
+// ================================================================
+// CONEXIÓN
+// ================================================================
 
-// =============== CONEXIÓN ===============
-
-/**
- * Inicializa la conexión con el Arduino.. Llamar una vez al arrancar el servidor.
- * Si falla, seguirá intentando reconectar cada TIEMPO_REINTENTO_RECONEXION ms.
- */
 async function iniciarConexionArduino() {
+    if (!SerialPort || !ReadlineParser) {
+        console.warn('[arduino-connection] SerialPort no está disponible.');
+        return;
+    }
+
+    if (conectado || intentandoReconectar) {
+        return;
+    }
+
     try {
         const puerto = await obtenerPuertoArduino();
 
         if (!puerto) {
-            console.error('[arduino-connection] No se pudo encontrar el puerto del Arduino. Reintentando en unos segundos...');
-            setTimeout(iniciarConexionArduino, TIEMPO_REINTENTO_RECONEXION);
+            console.warn('[arduino-connection] No se encontró Arduino. Reintentando...');
+
+            intentandoReconectar = true;
+
+            setTimeout(() => {
+                intentandoReconectar = false;
+                iniciarConexionArduino();
+            }, TIEMPO_REINTENTO_MS);
+
             return;
         }
 
-        console.log(`[arduino-connection] Intentando conectar al Arduino en ${puerto}...`);
-        puertoArduino = new SerialPort({ path: puerto, baudRate: 9600 });
+        console.log(`[arduino-connection] Intentando conectar Arduino en ${puerto}...`);
 
-        parser = puertoArduino.pipe(new ReadlineParser({ delimiter: '\n' }));
+        puertoArduino = new SerialPort({
+            path: puerto,
+            baudRate: BAUD_RATE,
+            autoOpen: false
+        });
 
-        // ---- Eventos del puerto ----
+        parser = puertoArduino.pipe(new ReadlineParser({
+            delimiter: '\n'
+        }));
+
+        puertoArduino.open((error) => {
+            intentandoReconectar = false;
+
+            if (error) {
+                conectado = false;
+
+                console.error(
+                    '[arduino-connection] Error al abrir puerto:',
+                    error.message
+                );
+
+                setTimeout(iniciarConexionArduino, TIEMPO_REINTENTO_MS);
+            }
+        });
 
         puertoArduino.on('open', () => {
             conectado = true;
-            console.log('[arduino-connection] Conexión con Arduino establecida.');
+            intentandoReconectar = false;
+
+            console.log('[arduino-connection] Arduino conectado correctamente.');
         });
 
         puertoArduino.on('close', () => {
             conectado = false;
-            console.warn('[arduino-connection] Conexión con Arduino cerrada. Intentando reconectar...');
-            _rechazarCallbacksPendientes('Conexión perdida');
-            setTimeout(iniciarConexionArduino, TIEMPO_REINTENTO_RECONEXION);
+
+            console.warn('[arduino-connection] Arduino desconectado.');
+
+            limpiarCallbacksPendientes();
+
+            setTimeout(iniciarConexionArduino, TIEMPO_REINTENTO_MS);
         });
 
-        puertoArduino.on('error', (err) => {
+        puertoArduino.on('error', (error) => {
             conectado = false;
-            console.error('[arduino-connection] Error en la conexión con Arduino:', err.message);
+
+            console.error('[arduino-connection] Error serial:', error.message);
         });
 
-        parser.on('data', _procesarRespuesta);
+        parser.on('data', procesarLineaSerial);
     } catch (error) {
-        console.error('[arduino-connection] Error al iniciar la conexión con Arduino:', error);
-        setTimeout(iniciarConexionArduino, TIEMPO_REINTENTO_RECONEXION);
+        conectado = false;
+        intentandoReconectar = false;
+
+        console.error(
+            '[arduino-connection] Error al iniciar conexión:',
+            error.message
+        );
+
+        setTimeout(iniciarConexionArduino, TIEMPO_REINTENTO_MS);
     }
 }
 
-// =============== COMANDOS ===============
-
-/**
- * Envía un comando al Arduino y espera su respuesta. "PREFIJO: OK"
- * @param {string} comando - El comando a enviar
- * @param {string} [esperarRespuesta] - El prefijo que se espera en la respuesta (ej: "FOOD", "WATER")
- * @returns {Promise<boolean>}
- */
+// ================================================================
+// ENVÍO DE COMANDOS
+// ================================================================
 
 function enviarComandoArduino(comando, esperarRespuesta = null) {
     return new Promise((resolve) => {
+        const respuestaEsperada = esperarRespuesta || inferirRespuestaEsperada(comando);
 
         if (!puertoArduino || !puertoArduino.isOpen || !conectado) {
-            console.error('[arduino-connection] No se puede enviar comando, Arduino no conectado.');
-            return resolve(false);
+            console.error(
+                `[arduino-connection] No se puede enviar "${comando}". Arduino no conectado.`
+            );
+
+            resolve(false);
+            return;
         }
 
-        // Inferir a clave de respuesta según el comando
-        // DISPENSE, WATER, TEST
-        const claveEspera = esperarRespuesta || _inferirClaveRespuesta(comando);
+        const timeoutId = setTimeout(() => {
+            callbacksEnEspera.delete(respuestaEsperada);
 
-        console.log(`[arduino-connection] Enviando comando al Arduino: "${comando}" (esperando respuesta: "${claveEspera}")`);
+            console.error(
+                `[arduino-connection] Timeout esperando "${respuestaEsperada}" para "${comando}".`
+            );
 
-        // Registrar callback ANTES de escribir para no perder respuestas rápidas
-        let timeoutId;
+            resolve(false);
+        }, TIEMPO_ESPERA_RESPUESTA_MS);
 
-        callbacksEnEspera[claveEspera] = () => {
+        callbacksEnEspera.set(respuestaEsperada, () => {
             clearTimeout(timeoutId);
-            delete callbacksEnEspera[claveEspera];
+            callbacksEnEspera.delete(respuestaEsperada);
             resolve(true);
-        };
+        });
 
-        // Timeout de seguridad
-        timeoutId = setTimeout(() => {
-            if (callbacksEnEspera[claveEspera]) {
-                delete callbacksEnEspera[claveEspera];
-                console.error(`[arduino-connection] Timeout esperando respuesta "${claveEspera}" del Arduino.`);
+        console.log(`[Arduino ->] ${comando}`);
+
+        puertoArduino.write(`${comando}\n`, (error) => {
+            if (error) {
+                clearTimeout(timeoutId);
+                callbacksEnEspera.delete(respuestaEsperada);
+
+                console.error(
+                    '[arduino-connection] Error al escribir en serial:',
+                    error.message
+                );
+
                 resolve(false);
             }
-        }, TIEMPO_ESPERA_RESPUESTA);
-
-        // Enviar el comando al Arduino
-        puertoArduino.write(comando + '\n', (err) => {
-            if (err) {
-                clearTimeout(timeoutId);
-                delete callbacksEnEspera[claveEspera];
-                console.error('[arduino-connection] Error al enviar comando al Arduino:', err.message);
-                return resolve(false);
-            }
-        }); 
+        });
     });
 }
 
-// =============== FUNCIONES INTERNAS ===============
+// ================================================================
+// LECTURA SERIAL
+// ================================================================
 
-function _procesarRespuesta(lineaRaw) {
-    const linea = lineaRaw.trim();
-    if (!linea) return;
+function procesarLineaSerial(lineaRaw) {
+    const linea = String(lineaRaw || '').trim();
+
+    if (!linea) {
+        return;
+    }
 
     console.log(`[Arduino <-] ${linea}`);
 
-    // Revisar si algún callback en espera conincide con esta línea
-    for (const clave of Object.keys(callbacksEnEspera)) {
+    /**
+     * Primero revisamos si la línea recibida es una respuesta
+     * a un comando que Node envió.
+     *
+     * Ejemplos:
+     * - DISPENSE:OK
+     * - WATER:OK
+     * - GAME:OK
+     * - REWARD:OK
+     */
+    if (callbacksEnEspera.has(linea)) {
+        callbacksEnEspera.get(linea)();
+        return;
+    }
+
+    /**
+     * A veces una respuesta puede venir con información adicional.
+     * Por eso también aceptamos startsWith().
+     */
+    for (const [clave, callback] of callbacksEnEspera.entries()) {
         if (linea.startsWith(clave)) {
-            callbacksEnEspera[clave]();
+            callback();
             return;
         }
     }
 
-    // Mensaje informativos del Arduino
-    if (linea === 'ARDUINO_READY') {
-        console.log('[arduino-connection] Arduino reporta que está listo.');
+    /**
+     * Si no era respuesta a un comando, es un evento espontáneo
+     * enviado desde Arduino.
+     *
+     * Ejemplos:
+     * - GAME_BUTTON:3
+     * - TEMP:24.5
+     * - PRESENCE:1
+     */
+    notificarManejadoresLineaSerial(linea);
+}
+
+async function notificarManejadoresLineaSerial(linea) {
+    for (const handler of manejadoresLineaSerial) {
+        try {
+            await handler(linea);
+        } catch (error) {
+            console.error(
+                '[arduino-connection] Error en manejador de línea serial:',
+                error.message
+            );
+        }
     }
 }
 
-function _inferirClaveRespuesta(comando) {
-   const MAPA_RESPUESTAS ={
-       'DISPENSE': 'DISPENSE:OK',
-       'WATER': 'WATER:OK',
-       'TEST_SERVO': 'TEST:COMPLETADO'
-   };
+function registrarManejadorLineaSerial(handler) {
+    if (typeof handler !== 'function') {
+        throw new Error('El manejador serial debe ser una función');
+    }
 
-   const prefijo = comando.split(':')[0].split('_')[0]; // Ej: "DISPENSE:5000" -> "DISPENSE"
-   if (MAPA_RESPUESTAS[comando]) return MAPA_RESPUESTAS[comando];
-   return MAPA_RESPUESTAS[prefijo] || `${prefijo}:OK`;
+    manejadoresLineaSerial.add(handler);
+
+    return () => {
+        manejadoresLineaSerial.delete(handler);
+    };
 }
 
-function _rechazarCallbacksPendientes(mensaje) {
-    const claves = Object.keys(callbacksEnEspera);
-    if (claves.length === 0) return;
+// ================================================================
+// RESPUESTAS ESPERADAS
+// ================================================================
 
-    console.warn(`[arduino-connection] Rechazando ${claves.length} callbacks pendientes: ${mensaje}`);
-    claves.forEach(clave => {
-        delete callbacksEnEspera[clave];
-    });
+function inferirRespuestaEsperada(comando) {
+    if (comando.startsWith('DISPENSE:')) {
+        return 'DISPENSE:OK';
+    }
+
+    if (comando.startsWith('WATER:')) {
+        return 'WATER:OK';
+    }
+
+    if (comando.startsWith('REWARD:')) {
+        return 'REWARD:OK';
+    }
+
+    if (comando.startsWith('GAME_WIN:')) {
+        return 'GAME:OK';
+    }
+
+    if (comando.startsWith('GAME_LOSE:')) {
+        return 'GAME:OK';
+    }
+
+    if (comando.startsWith('GAME_LED:')) {
+        return 'GAME:OK';
+    }
+
+    if (comando === 'GAME_RESET_LEDS') {
+        return 'GAME:OK';
+    }
+
+    if (comando.startsWith('BALL_LAUNCH:')) {
+        return 'BALL:OK';
+    }
+
+    if (comando === 'BALL_STOP') {
+        return 'BALL:OK';
+    }
+
+    if (comando === 'PING') {
+        return 'PONG';
+    }
+
+    if (comando === 'TEST_SERVO') {
+        return 'TEST:COMPLETADO';
+    }
+
+    return 'OK';
+}
+
+function limpiarCallbacksPendientes() {
+    callbacksEnEspera.clear();
 }
 
 function estaConectado() {
     return conectado && puertoArduino?.isOpen === true;
 }
 
+// ================================================================
+// EXPORTS
+// ================================================================
+
 module.exports = {
     iniciarConexionArduino,
     enviarComandoArduino,
-    estaConectado
+    estaConectado,
+    registrarManejadorLineaSerial
 };

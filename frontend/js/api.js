@@ -1,116 +1,277 @@
-/**
- * api.js  (frontend/js/api.js)
- * 
- * PRINCIPIO OCP: Para agregar SensoresApi, creamos la clase sin modificar las existentes.
- * PRINCIPIO DIP: Los HTMLs dependen de esta abstracción, no de fetch() directamente.
- */
-
-// ==================== CLASE BASE ====================
-
 class ApiBase {
-    static BASE_URL = 'http://localhost:3000/api';
+    static BASE_URL = '/api';
 
-    /**
-     * Método HTTP genérico. Maneja errores de red y errores del servidor.
-     * 
-     * @param {string} endpoint   Ruta relativa, ej: '/food/dispense'
-     * @param {string} method     'GET' | 'POST' | 'PUT' | 'DELETE'
-     * @param {object} [body]     Cuerpo del request (solo para POST/PUT)
-     * @returns {Promise<object>} Siempre retorna un objeto; en error retorna { success: false, error: '...' }
-     */
-    static async _request(endpoint, method = 'GET', body = null) {
+    static construirQuery(params = {}) {
+        const query = new URLSearchParams();
+
+        Object.entries(params).forEach(([clave, valor]) => {
+            if (valor !== undefined && valor !== null && valor !== '') {
+                query.append(clave, valor)
+            }
+        });
+
+        const queryString = query.toString();
+        return queryString ? `?${queryString}`: '';
+    }
+
+    static async request(endpoint, opciones = {}) {
         try {
-            const opciones = {
-                method,
-                headers: { 'Content-Type': 'application/json' }
-            };
+            const respuesta = await fetch(`${this.BASE_URL}${endpoint}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(opciones.headers || {})
+                },
+                ...opciones
+            });
 
-            if (body && (method === 'POST' || method === 'PUT')) {
-                opciones.body = JSON.stringify(body);
+            let data;
+
+            try {
+                data = await respuesta.json();
+            } catch (error) {
+                data = {
+                    success: false,
+                    error: 'El servidor no respondió con JSON válido'
+                };
             }
 
-            const response = await fetch(`${this.BASE_URL}${endpoint}`, opciones);
-            const data     = await response.json();
-
-            // Si el servidor retornó un código de error HTTP
-            if (!response.ok) {
+            if (!respuesta.ok) {
                 return {
                     success: false,
-                    error: data.error || `Error del servidor (${response.status})`
+                    status: respuesta.status,
+                    error: data.error || `Error HTTP ${respuesta.status}`,
+                    ...data
                 };
             }
 
             return data;
+        } catch (error) {
+            console.error('[ApiBase]', error);
 
-        } catch (err) {
-            // Error de red (servidor apagado, CORS, etc.)
-            console.error(`[API] Error en ${method} ${endpoint}:`, err.message);
             return {
                 success: false,
-                error: 'No se pudo conectar al servidor. ¿Está corriendo Node.js?'
+                error: 'No se pudo conectar con el servidor'
             };
         }
     }
 
-    static async _get(endpoint)         { return this._request(endpoint, 'GET'); }
-    static async _post(endpoint, body)  { return this._request(endpoint, 'POST', body); }
+    static get(endpoint, params = {}) {
+        const query = this.construirQuery(params);
+        return this.request(`${endpoint}${query}`, {
+            method: 'GET'
+        });
+    }
+
+    static post(endpoint, body = {}) {
+        return this.request(endpoint, {
+            method: 'POST',
+            body: JSON.stringify(body)
+        });
+    }
+
+    static put(endpoint, body = {}) {
+        return this.request(endpoint, {
+            method: 'PUT',
+            body: JSON.stringify(body)
+        });
+    }
+
+    static patch(endpoint, body = {}) {
+        return this.request(endpoint, {
+            method: 'PATCH',
+            body: JSON.stringify(body)
+        });
+    }
+
+    static delete(endpoint) {
+        return this.request(endpoint, {
+            method: 'DELETE',
+        });
+    }
 }
 
-// ==================== COMIDA API ====================
+class SistemaApi extends ApiBase {
+    static obtenerHealth() {
+        return this.get('/health');
+    }
+
+    static obtenerStatus() {
+        return this.get('/status');
+    }
+}
 
 class ComidaApi extends ApiBase {
-    /**
-     * Solicitar dispensación de comida.
-     * @param {number} gramos  Entre 10 y 500
-     */
-    static async dispensar(gramos) {
-        return this._post('/food/dispense', { grams: parseInt(gramos) });
+    static obtenerEstado() {
+        return this.get('/food/status');
     }
 
-    /** Estado actual del dispensador (nivel, online/offline) */
-    static async obtenerEstado() {
-        return this._get('/food/status');
+    static dispensar(gramos) {
+        const cantidad = Number(gramos);
+
+        return this.post('/food/dispense', {
+            grams: cantidad,
+            gramos: cantidad
+        });
     }
 }
-
-// ==================== AGUA API ====================
 
 class AguaApi extends ApiBase {
-    /**
-     * Solicitar apertura de la compuerta de agua.
-     * @param {number} segundos  Entre 1 y 10
-     */
-    static async dispensar(segundos) {
-        // Convertimos a ms aquí para que el HTML no tenga que saberlo
-        return this._post('/water/dispense', { duracion: parseInt(segundos) * 1000 });
+    static obtenerEstado() {
+        return this.get('/water/status');
     }
 
-    /** Estado actual del dispensador de agua */
-    static async obtenerEstado() {
-        return this._get('/water/status');
+    static dispensar(segundos) {
+        const segundosNumericos = Number(segundos);
+        const duracionMs = Math.round(segundosNumericos * 1000);
+
+
+        return this.post('/water/dispense', {
+            duracion: duracionMs,
+            duracionMs,
+            segundos: segundosNumericos
+        });
     }
 }
-
-// ==================== EVENTOS API ====================
 
 class EventosApi extends ApiBase {
-    /**
-     * Obtener historial de eventos del JSON real.
-     * @param {object} opciones  { tipo: 'comida'|'agua', limite: 20 }
-     */
-    static async obtener({ tipo = null, limite = 20 } = {}) {
-        let url = `/eventos?limite=${limite}`;
-        if (tipo) url += `&tipo=${tipo}`;
-        return this._get(url);
+    static obtener(filtros = {}) {
+        return this.get('/eventos', filtros);
+    }
+
+    static obtenerResumen() {
+        return this.get('/eventos/resumen');
+    }
+
+    static obtenerPorId(id) {
+        return this.get(`/eventos/${encodeURIComponent(id)}`);
+    }
+
+    static crear(evento) {
+        return this.post('/eventos', evento);
+    }
+
+    static eliminarTodos() {
+        return this.delete('/eventos');
+    }
+
+    static eliminarPorId(id) {
+        return this.delete(`/eventos/${encodeURIComponent(id)}`);
     }
 }
 
-// ==================== SERVIDOR API ====================
+class DispositivosApi extends ApiBase {
+    static listar() {
+        return this.get('/dispositivos');
+    }
 
-class ServidorApi extends ApiBase {
-    /** Verifica si el servidor Node.js y el Arduino están en línea */
-    static async obtenerEstado() {
-        return this._get('/status');
+    static listarAlias() {
+        return this.get('/devices');
+    }
+
+    static obtenerEstado(id) {
+        return this.get(`/dispositivos/${encodeURIComponent(id)}/status`);
+    }
+}
+class SensoresApi extends ApiBase {
+    static obtenerEstado() {
+        return this.get('/sensores/status');
+    }
+
+    static registrarTemperatura(valor) {
+        return this.post('/sensores/temperatura', {
+            valor: Number(valor),
+            temperatura: Number(valor)
+        });
+    }
+
+    static registrarPresencia(presente) {
+        return this.post('/sensores/presencia', {
+            presente: Boolean(presente),
+            detectado: Boolean(presente)
+        });
     }
 }
 
+class MascotasApi extends ApiBase {
+    static listar(filtros = {}) {
+        return this.get('/mascotas', filtros);
+    }
+
+    static obtenerResumen() {
+        return this.get('/mascotas/resumen');
+    }
+
+    static obtenerPrincipal() {
+        return this.get('/mascotas/principal');
+    }
+
+    static obtenerPorId(id) {
+        return this.get(`/mascotas/${encodeURIComponent(id)}`);
+    }
+
+    static crear(mascota) {
+        return this.post('/mascotas', mascota);
+    }
+
+    static actualizar(id, mascota) {
+        return this.put(`/mascotas/${encodeURIComponent(id)}`, mascota);
+    }
+
+    static actualizarParcial(id, cambios) {
+        return this.patch(`/mascotas/${encodeURIComponent(id)}`, cambios);
+    }
+
+    static marcarPrincipal(id) {
+        return this.patch(`/mascotas/${encodeURIComponent(id)}/principal`);
+    }
+
+    static eliminar(id) {
+        return this.delete(`/mascotas/${encodeURIComponent(id)}`);
+    }
+}
+
+/**
+ * Futuro juego de botones.
+ *
+ * Todavía no activamos estas rutas hasta crear el backend del juego,
+ * pero dejamos la clase pensada para expansión.
+ */
+class JuegoBotonesApi extends ApiBase {
+    static obtenerEstado() {
+        return this.get('/juego-botones/status');
+    }
+
+    static obtenerHistorial(limite = 20) {
+        return this.get('/juego-botones/historial',  { limite });
+    }
+
+    static jugar(boton) {
+        return this.post('/juego-botones/jugar', {
+            boton: Number(boton)
+        });
+    }
+
+    static entregarPremioManual() {
+        return this.post('/juego-botones/premio');
+    }
+
+    static reiniciarDia() {
+        return this.post('/juego-botones/reiniciar-dia');
+    }
+}
+
+/**
+ * Exponer clases globalmente.
+ * Esto permite que comida.html, agua.html, sensores.html y app.js
+ * puedan usar ComidaApi, AguaApi, EventosApi, etc.
+ */
+window.ApiBase = ApiBase;
+window.SistemaApi = SistemaApi;
+window.ComidaApi = ComidaApi;
+window.AguaApi = AguaApi;
+window.EventosApi = EventosApi;
+window.DispositivosApi = DispositivosApi;
+window.SensoresApi = SensoresApi;
+window.MascotasApi = MascotasApi;
+window.MascotaApi = MascotasApi;
+window.JuegoBotonesApi = JuegoBotonesApi;

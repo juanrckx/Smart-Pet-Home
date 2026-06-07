@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de Botones - Smart Pet Home</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <h1>🐾 Smart Pet</h1>
+        <nav>
+            <a href="../index.html">📊 Dashboard</a>
+            <a href="comida.html">🍖 Comida</a>
+            <a href="agua.html">💧 Agua</a>
+            <a href="sensores.html">📡 Sensores</a>
+            <a href="juego-botones.html" class="active">🎮 Juego</a>
+            <a href="configuracion.html">⚙️ Configuración</a>
+        </nav>
+    </aside>
+
+    <main class="container">
+        <header class="header">
+            <h1>🎮 Juego de Botones</h1>
+            <p>La mascota puede intentar ganar un premio una vez al día</p>
+        </header>
+
+        <div class="grid">
+            <div class="card card-sensores">
+                <h2>🎯 Estado del Juego</h2>
+
+                <div class="status">
+                    <p>
+                        <span class="status-label">Fecha:</span>
+                        <span class="status-value" id="fechaJuego">--</span>
+                    </p>
+                    <p>
+                        <span class="status-label">Premio disponible:</span>
+                        <span class="status-value" id="premioDisponible">--</span>
+                    </p>
+                    <p>
+                        <span class="status-label">Intentos de hoy:</span>
+                        <span class="status-value" id="totalIntentos">0</span>
+                    </p>
+                    <p>
+                        <span class="status-label">Arduino:</span>
+                        <span class="status-value" id="estadoArduino">--</span>
+                    </p>
+                </div>
+
+                <button id="recargarEstadoBtn" class="btn btn-secondary btn-small">
+                    🔄 Recargar Estado
+                </button>
+
+                <button id="reiniciarDiaBtn" class="btn btn-danger btn-small">
+                    ♻ Reiniciar Día
+                </button>
+            </div>
+
+            <div class="card card-comida">
+                <h2>🐾 Elegir Botón</h2>
+
+                <p style="color: #9E9E9E;">
+                    Simulación desde la web. Luego lo conectamos con botones físicos.
+                </p>
+
+                <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 20px;">
+                    <button class="btn btn-primary boton-juego" data-boton="1">1</button>
+                    <button class="btn btn-primary boton-juego" data-boton="2">2</button>
+                    <button class="btn btn-primary boton-juego" data-boton="3">3</button>
+                    <button class="btn btn-primary boton-juego" data-boton="4">4</button>
+                    <button class="btn btn-primary boton-juego" data-boton="5">5</button>
+                </div>
+
+                <div id="resultadoJuego" style="margin-top: 20px; display: none;"></div>
+            </div>
+
+            <div class="card card-agua">
+                <h2>🍪 Premio Manual</h2>
+
+                <p style="color: #9E9E9E;">
+                    Sirve para probar el servomotor del premio sin depender del juego.
+                </p>
+
+                <button id="premioManualBtn" class="btn btn-primary">
+                    🍪 Dispensar Premio
+                </button>
+            </div>
+
+            <div class="card">
+                <h2>📅 Historial del Juego</h2>
+
+                <div id="historialJuego" style="max-height: 280px; overflow-y: auto;">
+                    <p style="color: #9E9E9E;">Cargando historial...</p>
+                </div>
+
+                <button id="recargarHistorialBtn" class="btn btn-secondary btn-small">
+                    🔄 Recargar Historial
+                </button>
+            </div>
+        </div>
+
+        <div id="alertContainerJuego" style="position: fixed; bottom: 20px; right: 20px; max-width: 320px; z-index: 9999;"></div>
+    </main>
+
+    <script src="../js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarEstadoJuego();
+            cargarHistorialJuego();
+
+            document.querySelectorAll('.boton-juego').forEach((boton) => {
+                boton.addEventListener('click', () => {
+                    jugar(Number(boton.dataset.boton));
+                });
+            });
+
+            document.getElementById('recargarEstadoBtn')
+                .addEventListener('click', cargarEstadoJuego);
+
+            document.getElementById('recargarHistorialBtn')
+                .addEventListener('click', cargarHistorialJuego);
+
+            document.getElementById('premioManualBtn')
+                .addEventListener('click', entregarPremioManual);
+
+            document.getElementById('reiniciarDiaBtn')
+                .addEventListener('click', reiniciarDia);
+        });
+
+        async function cargarEstadoJuego() {
+            const data = await JuegoBotonesApi.obtenerEstado();
+
+            if (!data.success) {
+                mostrarAlertaJuego(data.error, 'error');
+                return;
+            }
+
+            document.getElementById('fechaJuego').textContent = data.fecha || '--';
+            document.getElementById('premioDisponible').textContent = data.premio_disponible ? 'Sí' : 'No';
+            document.getElementById('totalIntentos').textContent = data.total_intentos ?? 0;
+            document.getElementById('estadoArduino').textContent = data.arduino_conectado ? 'Conectado' : 'No conectado';
+
+            if (!data.premio_disponible) {
+                document.getElementById('premioDisponible').style.color = '#dc3545';
+            } else {
+                document.getElementById('premioDisponible').style.color = '#28a745';
+            }
+        }
+
+        async function cargarHistorialJuego() {
+            const contenedor = document.getElementById('historialJuego');
+            contenedor.innerHTML = '<p style="color: #9E9E9E;">Cargando historial...</p>';
+
+            const data = await JuegoBotonesApi.obtenerHistorial(20);
+
+            if (!data.success) {
+                contenedor.innerHTML = '<p style="color: #dc3545;">Error al cargar historial.</p>';
+                return;
+            }
+
+            if (!data.intentos || data.intentos.length === 0) {
+                contenedor.innerHTML = '<p style="color: #9E9E9E;">Aún no hay intentos hoy.</p>';
+                return;
+            }
+
+            contenedor.innerHTML = data.intentos.map((intento) => {
+                const color = intento.acerto ? '#28a745' : '#dc3545';
+
+                return `
+                    <div style="border-left: 3px solid ${color}; padding-left: 12px; margin: 10px 0;">
+                        <p style="margin: 0;">
+                            <strong>${formatearHora(intento.timestamp)}</strong>
+                            — Botón ${intento.botonElegido}
+                        </p>
+                        <p style="margin: 0; color: #9E9E9E;">
+                            ${escaparHTML(intento.mensaje || '')}
+                        </p>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function jugar(boton) {
+            bloquearBotones(true);
+            ocultarResultado();
+
+            const data = await JuegoBotonesApi.jugar(boton);
+
+            bloquearBotones(false);
+
+            if (!data.success) {
+                mostrarResultadoJuego(`❌ ${data.error}`, 'error');
+                mostrarAlertaJuego(data.error, 'error');
+                return;
+            }
+
+            if (data.acerto) {
+                if (data.premio_entregado_ahora) {
+                    mostrarResultadoJuego(`🎉 ${data.message}`, 'success');
+                    mostrarAlertaJuego('🎉 ¡Premio dispensado!', 'success');
+                } else {
+                    mostrarResultadoJuego(`🏆 ${data.message}`, 'warning');
+                    mostrarAlertaJuego('🏆 Ganó, pero el premio de hoy ya fue entregado', 'warning');
+                }
+            } else {
+                mostrarResultadoJuego(`😿 ${data.message}`, 'error');
+                mostrarAlertaJuego('Sigue intentando', 'info');
+            }
+
+            cargarEstadoJuego();
+            cargarHistorialJuego();
+        }
+
+        async function entregarPremioManual() {
+            const data = await JuegoBotonesApi.entregarPremioManual();
+
+            if (data.success) {
+                mostrarAlertaJuego(data.message, 'success');
+            } else {
+                mostrarAlertaJuego(data.error, 'error');
+            }
+        }
+
+        async function reiniciarDia() {
+            const confirmar = confirm('¿Seguro que deseas reiniciar el juego de hoy?');
+
+            if (!confirmar) return;
+
+            const data = await JuegoBotonesApi.reiniciarDia();
+
+            if (data.success) {
+                mostrarAlertaJuego(data.message, 'success');
+                cargarEstadoJuego();
+                cargarHistorialJuego();
+            } else {
+                mostrarAlertaJuego(data.error, 'error');
+            }
+        }
+
+        function bloquearBotones(bloquear) {
+            document.querySelectorAll('.boton-juego').forEach((boton) => {
+                boton.disabled = bloquear;
+            });
+        }
+
+        function mostrarResultadoJuego(mensaje, tipo) {
+            const resultado = document.getElementById('resultadoJuego');
+            const clases = {
+                success: 'alert alert-success',
+                error: 'alert alert-error',
+                warning: 'alert alert-warning',
+                info: 'alert alert-info'
+            };
+
+            resultado.className = clases[tipo] || 'alert alert-info';
+            resultado.textContent = mensaje;
+            resultado.style.display = 'block';
+        }
+
+        function ocultarResultado() {
+            const resultado = document.getElementById('resultadoJuego');
+            resultado.style.display = 'none';
+            resultado.textContent = '';
+        }
+
+        function mostrarAlertaJuego(mensaje, tipo) {
+            const clases = {
+                success: 'alert-success',
+                error: 'alert-error',
+                warning: 'alert-warning',
+                info: 'alert-info'
+            };
+
+            const alerta = document.createElement('div');
+            alerta.className = `alert ${clases[tipo] || 'alert-info'}`;
+            alerta.innerHTML = `<div>${escaparHTML(mensaje)}</div>`;
+
+            document.getElementById('alertContainerJuego').appendChild(alerta);
+
+            setTimeout(() => alerta.remove(), 4000);
+        }
+
+        function formatearHora(timestamp) {
+            if (!timestamp) return '--';
+
+            const fecha = new Date(timestamp);
+
+            if (Number.isNaN(fecha.getTime())) return '--';
+
+            return fecha.toLocaleTimeString('es-CR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function escaparHTML(texto) {
+            return String(texto)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+    </script>
+</body>
+</html>
