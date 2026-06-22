@@ -164,7 +164,7 @@ router.post('/hablar', asyncHandler(async (req, res) => {
         10000
     );
 
-    const arduino = await enviarArduino(`BUZZER_PLAY:${duracionMs}`, 'BUZZER:OK');
+    const arduino = await enviarArduino(`BUZZER_PLAY:${duracionMs}`, 'BUZZER:STARTED');
 
     const estado = await guardarEstadoComunicacion({
         buzzer_ultimo_uso: obtenerTimestamp()

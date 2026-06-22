@@ -4,16 +4,16 @@
 // JUEGO DE BOTONES + DISPENSADOR DE PREMIO - SMART PET HOME
 // ================================================================
 
-const int TOTAL_BUTTONS = 5;
+const int TOTAL_BUTTONS = 4;
 
 // LEDs del juego
 const int LED_PINS[TOTAL_BUTTONS] = {
-  2, 3, 4, 5, 6
+  2, 3, 4, 5
 };
 
 // Botones del juego
 const int BUTTON_PINS[TOTAL_BUTTONS] = {
-  7, 8, 12, 13, A0
+  7, 8, 12, 13
 };
 
 // Servo de premio
@@ -26,11 +26,11 @@ Servo rewardServo;
 
 // Antirrebote
 bool previousButtonState[TOTAL_BUTTONS] = {
-  false, false, false, false, false
+  false, false, false, false
 };
 
 unsigned long lastButtonChange[TOTAL_BUTTONS] = {
-  0, 0, 0, 0, 0
+  0, 0, 0, 0
 };
 
 const unsigned long DEBOUNCE_MS = 250;

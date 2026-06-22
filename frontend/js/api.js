@@ -335,14 +335,43 @@ class LanzadorPelotasApi extends ApiBase {
         return this.get('/lanzador-pelotas/status');
     }
 
-    static lanzar(cantidad = 5) {
+    static lanzar(cantidad = 5, potencia = 220) {
         return this.post('/lanzador-pelotas/lanzar', {
-            cantidad: Number(cantidad)
+            cantidad: Number(cantidad),
+            potencia: Number(potencia)
         });
     }
 
     static detener() {
         return this.post('/lanzador-pelotas/detener');
+    }
+
+    static cambiarPotencia(potencia = 220) {
+        return this.post('/lanzador-pelotas/potencia', {
+            potencia: Number(potencia)
+        });
+    }
+
+    static probarMotores() {
+        return this.post('/lanzador-pelotas/test');
+    }
+}
+
+class ConfiguracionApi extends ApiBase {
+    static obtener() {
+        return this.get('/configuracion');
+    }
+
+    static guardar(configuracion) {
+        return this.put('/configuracion', configuracion);
+    }
+
+    static actualizarSeccion(seccion, datos) {
+        return this.patch(`/configuracion/${encodeURIComponent(seccion)}`, datos);
+    }
+
+    static restablecer() {
+        return this.post('/configuracion/restablecer');
     }
 }
 
@@ -365,3 +394,5 @@ window.LanzadorPelotasApi = LanzadorPelotasApi;
 
 window.MascotasApi = MascotasApi;
 window.MascotaApi = MascotasApi;
+
+window.ConfiguracionApi = ConfiguracionApi;

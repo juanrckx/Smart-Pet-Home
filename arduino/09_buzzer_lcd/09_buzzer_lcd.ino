@@ -56,9 +56,12 @@ void processCommand(String command) {
       durationMs = 10000;
     }
 
+    Serial.println("BUZZER:STARTED");
+    
+
     playBuzzer(durationMs);
 
-    Serial.println("BUZZER:OK");
+    Serial.println("BUZZER:DONE");
     return;
   }
 

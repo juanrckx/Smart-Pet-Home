@@ -47,7 +47,7 @@ const callbacksEnEspera = new Map();
 const manejadoresLineaSerial = new Set();
 
 const BAUD_RATE = 9600;
-const TIEMPO_ESPERA_RESPUESTA_MS = 8000;
+const TIEMPO_ESPERA_RESPUESTA_MS = 30000;
 const TIEMPO_REINTENTO_MS = 5000;
 
 // ================================================================
@@ -279,6 +279,18 @@ function inferirRespuestaEsperada(comando) {
     if (comando.startsWith('DISPENSE:')) {
         return 'DISPENSE:OK';
     }
+    
+        if (comando.startsWith('FOOD_TARGET:')) {
+            return 'FOOD:OK';
+        }
+        
+        if (comando === 'TARE') {
+            return 'FOOD:TARE:OK';
+        }
+        
+        if (comando === 'READ_WEIGHT') {
+            return 'FOOD:WEIGHT:';
+        }
 
     if (comando.startsWith('WATER:')) {
         return 'WATER:OK';
@@ -308,7 +320,7 @@ function inferirRespuestaEsperada(comando) {
     if (comando === 'DOOR_CLOSE') return 'DOOR:CLOSE';
     if (comando.startsWith('DOOR_OPEN_FOR:')) return 'DOOR:OK';
 
-    if (comando.startsWith('BUZZER_PLAY:')) return 'BUZZER:OK';
+    if (comando.startsWith('BUZZER_PLAY:')) return 'BUZZER:STARTED';
     if (comando === 'LCD_VIDEO_ON') return 'LCD:OK';
     if (comando === 'LCD_VIDEO_OFF') return 'LCD:OK';
     if (comando.startsWith('LCD_TEXT:')) return 'LCD:OK';
@@ -319,6 +331,14 @@ function inferirRespuestaEsperada(comando) {
     
     if (comando === 'BALL_STOP') {
         return 'BALL:STOP:OK';
+    }
+    
+    if (comando.startsWith('BALL_POWER:')) {
+        return 'BALL:POWER:';
+    }
+    
+    if (comando === 'BALL_TEST') {
+        return 'BALL:TEST:OK';
     }
 
     if (comando === 'PING') {

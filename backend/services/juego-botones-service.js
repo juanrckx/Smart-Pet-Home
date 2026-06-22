@@ -14,7 +14,7 @@ const {
 const ARCHIVO_JUEGO = 'juego-botones.json';
 const ARCHIVO_EVENTOS = 'eventos.json';
 
-const TOTAL_BOTONES = 5;
+const TOTAL_BOTONES = 4;
 const DURACION_SERVO_PREMIO_MS = 1200;
 
 const DEBUG_JUEGO = process.env.DEBUG_JUEGO === 'true';

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuración - Smart Pet Home</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <aside class="sidebar"></aside>
+
+    <main class="container">
+        <header class="header">
+            <h1>⚙️ Configuración General</h1>
+            <p>Administra los valores por defecto del sistema Smart Pet Home.</p>
+        </header>
+
+        <div class="grid">
+            <div class="card card-comida">
+                <h2>🍖 Comida</h2>
+
+                <div class="form-group">
+                    <label for="comidaGramosDefecto">Gramos por defecto:</label>
+                    <input type="number" id="comidaGramosDefecto" min="10" max="500">
+                </div>
+
+                <div class="form-group">
+                    <label for="comidaMinimoGramos">Mínimo permitido:</label>
+                    <input type="number" id="comidaMinimoGramos" min="1" max="500">
+                </div>
+
+                <div class="form-group">
+                    <label for="comidaMaximoGramos">Máximo permitido:</label>
+                    <input type="number" id="comidaMaximoGramos" min="10" max="1000">
+                </div>
+
+                <div class="form-group">
+                    <label for="comidaTiempoMs">Tiempo de dispensación en ms:</label>
+                    <input type="number" id="comidaTiempoMs" min="300" max="20000">
+                </div>
+            </div>
+
+            <div class="card card-agua">
+                <h2>💧 Agua</h2>
+
+                <div class="form-group">
+                    <label for="aguaDuracionDefectoMs">Duración por defecto en ms:</label>
+                    <input type="number" id="aguaDuracionDefectoMs" min="500" max="20000">
+                </div>
+
+                <div class="form-group">
+                    <label for="aguaDuracionMinimaMs">Duración mínima en ms:</label>
+                    <input type="number" id="aguaDuracionMinimaMs" min="300" max="10000">
+                </div>
+
+                <div class="form-group">
+                    <label for="aguaDuracionMaximaMs">Duración máxima en ms:</label>
+                    <input type="number" id="aguaDuracionMaximaMs" min="1000" max="30000">
+                </div>
+            </div>
+
+            <div class="card card-sensores">
+                <h2>🌡️ Temperatura</h2>
+
+                <div class="form-group">
+                    <label for="tempMinima">Temperatura mínima °C:</label>
+                    <input type="number" id="tempMinima" min="-10" max="60" step="0.1">
+                </div>
+
+                <div class="form-group">
+                    <label for="tempMaxima">Temperatura máxima °C:</label>
+                    <input type="number" id="tempMaxima" min="-10" max="60" step="0.1">
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="tempAlertasActivas">
+                        Activar alertas de temperatura
+                    </label>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>📢 Comunicación LCD/Buzzer</h2>
+
+                <div class="form-group">
+                    <label for="buzzerDuracionMs">Duración por defecto del buzzer en ms:</label>
+                    <input type="number" id="buzzerDuracionMs" min="200" max="10000">
+                </div>
+
+                <div class="form-group">
+                    <label for="lcdLinea1">LCD línea 1:</label>
+                    <input type="text" id="lcdLinea1" maxlength="20">
+                    <small>Máximo 20 caracteres.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="lcdLinea2">LCD línea 2:</label>
+                    <input type="text" id="lcdLinea2" maxlength="20">
+                    <small>Máximo 20 caracteres.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="lcdLinea3">LCD línea 3:</label>
+                    <input type="text" id="lcdLinea3" maxlength="20">
+                    <small>Máximo 20 caracteres.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="lcdLinea4">LCD línea 4:</label>
+                    <input type="text" id="lcdLinea4" maxlength="20">
+                    <small>Máximo 20 caracteres.</small>
+                </div>
+            </div>
+
+            <div class="card card-juego">
+                <h2>🎮 Juego de Botones</h2>
+
+                <div class="form-group">
+                    <label for="juegoTotalBotones">Total de botones:</label>
+                    <input type="number" id="juegoTotalBotones" value="4" readonly>
+                    <small>Se deja fijo en 4 porque depende del hardware físico y del sketch Arduino.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="juegoDuracionPremioMs">Duración del servo de premio en ms:</label>
+                    <input type="number" id="juegoDuracionPremioMs" min="300" max="5000">
+                </div>
+
+                <button id="reiniciarJuegoBtn" class="btn btn-warning">
+                    🔄 Reiniciar juego del día
+                </button>
+            </div>
+
+            <div class="card">
+                <h2>🎾 Lanzador de Pelotas</h2>
+
+                <div class="form-group">
+                    <label for="pelotasCantidadDefecto">Cantidad por defecto:</label>
+                    <input type="number" id="pelotasCantidadDefecto" min="1" max="5">
+                </div>
+
+                <div class="form-group">
+                    <label for="pelotasCantidadMaxima">Cantidad máxima:</label>
+                    <input type="number" id="pelotasCantidadMaxima" value="5" readonly>
+                    <small>Se deja fijo en 5 para respetar el límite usado en el módulo.</small>
+                </div>
+            </div>
+
+            <div class="card" style="grid-column: span 2;">
+                <h2>💾 Acciones</h2>
+
+                <button id="guardarConfigBtn" class="btn btn-primary">
+                    💾 Guardar configuración
+                </button>
+
+                <button id="recargarConfigBtn" class="btn btn-secondary">
+                    🔄 Recargar
+                </button>
+
+                <button id="restablecerConfigBtn" class="btn btn-danger">
+                    ♻️ Restablecer valores
+                </button>
+
+                <div id="resultadoConfig" style="margin-top: 18px; display: none;"></div>
+            </div>
+        </div>
+
+        <div id="alertContainer"></div>
+    </main>
+
+    <script src="../js/api.js"></script>
+    <script src="../js/ui.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            UI.inicializarPagina({
+                paginaActiva: 'configuracion',
+                enIndex: false,
+                logoSrc: '../assets/logo.png'
+            });
+
+            cargarConfiguracion();
+            verificarSistema();
+
+            document.getElementById('guardarConfigBtn').addEventListener('click', guardarConfiguracion);
+            document.getElementById('recargarConfigBtn').addEventListener('click', cargarConfiguracion);
+            document.getElementById('restablecerConfigBtn').addEventListener('click', restablecerConfiguracion);
+            document.getElementById('verificarSistemaBtn').addEventListener('click', verificarSistema);
+            document.getElementById('reiniciarJuegoBtn').addEventListener('click', reiniciarJuego);
+        });
+
+        async function cargarConfiguracion() {
+            const data = await ConfiguracionApi.obtener();
+
+            if (!data.success) {
+                UI.mostrarAlerta(data.error, 'error');
+                return;
+            }
+
+            pintarConfiguracion(data.configuracion);
+            UI.mostrarResultado('resultadoConfig', 'Configuración cargada correctamente.', 'info');
+        }
+
+        function pintarConfiguracion(config) {
+            UI.setValor('comidaGramosDefecto', config.comida.gramosPorDefecto);
+            UI.setValor('comidaMinimoGramos', config.comida.minimoGramos);
+            UI.setValor('comidaMaximoGramos', config.comida.maximoGramos);
+            UI.setValor('comidaTiempoMs', config.comida.tiempoDispensaMs);
+
+            UI.setValor('aguaDuracionDefectoMs', config.agua.duracionPorDefectoMs);
+            UI.setValor('aguaDuracionMinimaMs', config.agua.duracionMinimaMs);
+            UI.setValor('aguaDuracionMaximaMs', config.agua.duracionMaximaMs);
+
+            UI.setValor('tempMinima', config.temperatura.minima);
+            UI.setValor('tempMaxima', config.temperatura.maxima);
+            UI.setChecked('tempAlertasActivas', config.temperatura.alertasActivas);
+
+            UI.setValor('buzzerDuracionMs', config.comunicacion.buzzerDuracionDefectoMs);
+            UI.setValor('lcdLinea1', config.comunicacion.lcdLinea1);
+            UI.setValor('lcdLinea2', config.comunicacion.lcdLinea2);
+            UI.setValor('lcdLinea3', config.comunicacion.lcdLinea3);
+            UI.setValor('lcdLinea4', config.comunicacion.lcdLinea4);
+
+            UI.setValor('juegoTotalBotones', config.juego.totalBotones);
+            UI.setValor('juegoDuracionPremioMs', config.juego.duracionPremioMs);
+
+            UI.setValor('pelotasCantidadDefecto', config.lanzador.cantidadDefecto);
+            UI.setValor('pelotasCantidadMaxima', config.lanzador.cantidadMaxima);
+
+            UI.setChecked('sistemaModoDefensa', config.sistema.modoDefensa);
+            UI.setValor('sistemaModuloDemo', config.sistema.moduloDemo);
+            UI.setValor('sistemaNotas', config.sistema.notas);
+        }
+
+        function leerConfiguracionFormulario() {
+            return {
+                comida: {
+                    gramosPorDefecto: UI.obtenerNumero('comidaGramosDefecto', 100),
+                    minimoGramos: UI.obtenerNumero('comidaMinimoGramos', 10),
+                    maximoGramos: UI.obtenerNumero('comidaMaximoGramos', 500),
+                    tiempoDispensaMs: UI.obtenerNumero('comidaTiempoMs', 5000)
+                },
+                agua: {
+                    duracionPorDefectoMs: UI.obtenerNumero('aguaDuracionDefectoMs', 3000),
+                    duracionMinimaMs: UI.obtenerNumero('aguaDuracionMinimaMs', 1000),
+                    duracionMaximaMs: UI.obtenerNumero('aguaDuracionMaximaMs', 10000)
+                },
+                temperatura: {
+                    minima: UI.obtenerNumero('tempMinima', 18),
+                    maxima: UI.obtenerNumero('tempMaxima', 30),
+                    alertasActivas: UI.getChecked('tempAlertasActivas')
+                },
+                comunicacion: {
+                    buzzerDuracionDefectoMs: UI.obtenerNumero('buzzerDuracionMs', 1500),
+                    lcdLinea1: UI.obtenerTexto('lcdLinea1', 'SMART PET HOME'),
+                    lcdLinea2: UI.obtenerTexto('lcdLinea2', 'VIDEO EN VIVO'),
+                    lcdLinea3: UI.obtenerTexto('lcdLinea3', 'Mascota online :)'),
+                    lcdLinea4: UI.obtenerTexto('lcdLinea4', 'Sistema activo')
+                },
+                juego: {
+                    totalBotones: 4,
+                    duracionPremioMs: UI.obtenerNumero('juegoDuracionPremioMs', 1200)
+                },
+                lanzador: {
+                    cantidadDefecto: UI.obtenerNumero('pelotasCantidadDefecto', 5),
+                    cantidadMaxima: 5
+                },
+                sistema: {
+                    modoDefensa: UI.getChecked('sistemaModoDefensa'),
+                    moduloDemo: UI.obtenerTexto('sistemaModuloDemo', ''),
+                    notas: UI.obtenerTexto('sistemaNotas', '')
+                }
+            };
+        }
+
+        async function guardarConfiguracion() {
+            const btn = document.getElementById('guardarConfigBtn');
+
+            UI.setLoading(btn, true, 'Guardando...');
+
+            const configuracion = leerConfiguracionFormulario();
+            const data = await ConfiguracionApi.guardar(configuracion);
+
+            UI.setLoading(btn, false);
+
+            if (!data.success) {
+                UI.mostrarResultado('resultadoConfig', data.error, 'error');
+                UI.mostrarAlerta(data.error, 'error');
+                return;
+            }
+
+            pintarConfiguracion(data.configuracion);
+            UI.mostrarResultado('resultadoConfig', data.message, 'success');
+            UI.mostrarAlerta(data.message, 'success');
+        }
+
+        async function restablecerConfiguracion() {
+            const confirmar = confirm('¿Seguro que deseas restablecer toda la configuración?');
+
+            if (!confirmar) {
+                return;
+            }
+
+            const data = await ConfiguracionApi.restablecer();
+
+            if (!data.success) {
+                UI.mostrarAlerta(data.error, 'error');
+                return;
+            }
+
+            pintarConfiguracion(data.configuracion);
+            UI.mostrarResultado('resultadoConfig', data.message, 'success');
+            UI.mostrarAlerta(data.message, 'success');
+        }
+
+        async function verificarSistema() {
+            const health = await SistemaApi.obtenerHealth();
+            const status = await SistemaApi.obtenerStatus();
+
+            UI.setTexto('estadoBackend', health.success ? 'En línea' : 'Sin conexión');
+
+            if (status.success) {
+                const conectado = status.arduino_conectado || status.arduinoConectado || false;
+                UI.setTexto('estadoArduino', conectado ? 'Conectado' : 'No conectado');
+            } else {
+                UI.setTexto('estadoArduino', 'No disponible');
+            }
+        }
+
+        async function reiniciarJuego() {
+            const confirmar = confirm('¿Seguro que deseas reiniciar el juego del día?');
+
+            if (!confirmar) {
+                return;
+            }
+
+            const data = await JuegoBotonesApi.reiniciarDia();
+
+            if (data.success) {
+                UI.mostrarAlerta(data.message, 'success');
+            } else {
+                UI.mostrarAlerta(data.error, 'error');
+            }
+        }
+    </script>
+</body>
+</html>

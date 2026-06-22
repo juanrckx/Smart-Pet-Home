@@ -273,7 +273,7 @@ class Dispensador extends Dispositivo {
 
         return {
             success: true,
-            message: this.consruirMensajeExito(datosValidados),
+            message: this.construirMensajeExito(datosValidados),
             evento,
             arduino: resultadoArduino
         };
@@ -308,55 +308,60 @@ class Dispensador extends Dispositivo {
 
 class DispensadorComida extends Dispensador {
     validar(payload) {
-        const gramos = validarNumeroEnRango(payload.gramos ?? payload.gramos, 'Gramos a dispensar', 10, 500);
+        const gramos = validarNumeroEnRango(
+            payload.gramos ?? payload.grams ?? payload.cantidad,
+            'Gramos a dispensar',
+            5,
+            500
+        );
 
-        return { gramos: Math.round(gramos) };
+        return {
+            gramos: Math.round(gramos)
+        };
     }
 
     construirComando({ gramos }) {
-        const duracionMs = this.calcularDuracion(gramos);
-        return `DISPENSE:${duracionMs}`;
-    }
-
-    calcularDuracion(gramos) {
-        return Math.round(gramos * 50);
+        return `FOOD_TARGET:${gramos}`;
     }
 
     construirDatosEvento({ gramos }) {
-        const duracionMs = this.calcularDuracion(gramos);
-
         return {
             gramos,
-            duracion_ms: duracionMs,
-            duracion_s: (duracionMs / 1000).toFixed(2)
+            unidad: 'g',
+            metodo: 'peso_real_hx711',
+            sensor: 'load_cell_hx711'
         };
     }
 
     consruirMensajeExito({ gramos }) {
-        return `Se han dispensado ${gramos} gramos de comida.`;
-     }
+        return `Se han dispensado ${gramos} gramos de comida por peso real.`;
+    }
 
     obtenerAccion() {
-        return 'dispensar_comida';
-     }
+        return 'dispensar_comida_por_peso';
+    }
 
     obtenerRespuestaEsperada() {
-        return 'DISPENSE:OK';
-     }
+        return 'FOOD:OK';
+    }
 
-     async actualizarNivelDespuesDeDispensar({ gramos }) {
+    async actualizarNivelDespuesDeDispensar({ gramos }) {
         const dispositivo = await this.dispositivoRepo.obtenerPorId(this.id);
         const nivelActual = Number(dispositivo?.nivel ?? 100);
 
         const reduccion = gramos / 10;
-        const nuevoNivel = Math.max(0, nivelActual - reduccion);
+        const nuevoNivel = Math.max(0, Math.round(nivelActual - reduccion));
 
         await this.dispositivoRepo.actualizar(this.id, {
             nivel: nuevoNivel,
-            estado: 'activo'
+            estado: 'activo',
+            ultima_dispensacion_g: gramos,
+            ultimo_metodo: 'peso_real_hx711',
+            ultima_actualizacion: new Date().toISOString()
         });
     }
 }
+
 class DispensadorAgua extends Dispensador {
     validar(payload) {
         const duracionMs = validarNumeroEnRango(
@@ -590,6 +595,40 @@ router.get('/dispositivos', asyncHandler(async (req, res) => {
     const { repositorio } = crearDispositivo();
     const dispositivos = await repositorio.listar();
     res.json({ success: true, dispositivos });
+}));
+
+router.get('/comida/status', asyncHandler(async (req, res) => {
+    const { comida } = crearDispositivo();
+    const estado = await comida.obtenerEstado();
+
+    res.json({
+        success: true,
+        ...estado
+    });
+}));
+
+router.post('/comida/dispense', asyncHandler(async (req, res) => {
+    const { comida } = crearDispositivo();
+    const resultado = await comida.dispensar(req.body);
+
+    res.json(resultado);
+}));
+
+router.get('/food/status', asyncHandler(async (req, res) => {
+    const { comida } = crearDispositivo();
+    const estado = await comida.obtenerEstado();
+
+    res.json({
+        success: true,
+        ...estado
+    });
+}));
+
+router.post('/food/dispense', asyncHandler(async (req, res) => {
+    const { comida } = crearDispositivo();
+    const resultado = await comida.dispensar(req.body);
+
+    res.json(resultado);
 }));
 
 router.get('/devices', asyncHandler(async (req, res) => {

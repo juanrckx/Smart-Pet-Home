@@ -34,6 +34,8 @@ const puertaRouter = require('./routes/puerta');
 const comunicacionRouter = require('./routes/comunicacion');
 const lanzadorPelotasRouter = require('./routes/lanzador-pelotas');
 
+const configuracionRouter = require('./routes/configuracion');
+
 const { match } = require('assert');
 const { access } = require('fs');
 
@@ -197,6 +199,8 @@ function configurarRutas() {
         app.use('/api/puerta', puertaRouter);
         app.use('/api/comunicacion', comunicacionRouter);
         app.use('/api/lanzador-pelotas', lanzadorPelotasRouter);
+
+        app.use('/api/configuracion', configuracionRouter);
     
         /**
          * Health check simple.
