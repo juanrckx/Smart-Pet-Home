@@ -9,17 +9,25 @@
 <body>
     <!-- Sidebar (menú lateral) -->
     <aside class="sidebar">
-        <h1>🐾 Smart Pet</h1>
+        <div class="brand">
+            <img src="assets/logo.png" alt="Smart Pet Home" class="brand-logo">
+            <div class="brand-text">
+                <h1>Smart Pet Home</h1>
+                <p>Keeping pets happy</p>
+            </div>
+        </div>        
+        
         <nav>
             <a href="#dashboard" class="active">Dashboard</a>
-            <a href="pages/comida.html">Comida</a>
-            <a href="pages/agua.html">Agua</a>
-            <a href="pages/sensores.html">Sensores</a>
-            <a href="pages/juego-botones.html">Juego</a>
-            <a href="pages/configuracion.html">Configuración</a>
-            <a href="pages/comunicacion.html">Comunicación con mascota</a>
-            <a href="pages/puerta.html">Puerta inteligente</a>
-            <a href="pages/lanzador-pelotas.html">🎾 Pelotas</a>
+            <a href="pages/mascotas.html">🐶 Mascotas</a>
+            <a href="pages/comida.html">🍖Comida</a>
+            <a href="pages/agua.html">💧Agua</a>
+            <a href="pages/sensores.html">📡Sensores</a>
+            <a href="pages/puerta.html">🚪 Puerta</a>
+            <a href="pages/juego-botones.html">🎮 Juego</a>
+            <a href="pages/configuracion.html">⚙️ Configuración</a>
+            <a href="pages/comunicacion.html">📢 Comunicación</a>
+            <a href="pages/lanzador-pelotas.html">🎾 Lanzador</a>
         </nav>
     </aside>
 
@@ -27,62 +35,49 @@
     <main class="container">
         <!-- HEADER -->
         <header class="header">
-            <h1>Dashboard Principal</h1>
-            <p id="timestamp">Cargando...</p>
+            <h1>Dashboard General</h1>
+            <p>Monitorea y controla todos los módulos de Smart Pet Home desde una sola interfaz.</p>
         </header>
 
         <!-- GRID DE TARJETAS -->
         <div class="grid">
-            <!-- Tarjeta: Dispensador Comida -->
-            <div class="card">
-                <h2>Dispensador Comida</h2>
-                <div class="status">
-                    <p>Estado: <span id="food-status">●</span> Online</p>
-                    <p>Última actividad: <span id="food-last">--</span></p>
-                </div>
-                <a href="pages/comida.html" class="btn">Ir a Comida</a>
-            </div>
-
-            <!-- Tarjeta: Dispensador Agua -->
-            <div class="card">
-                <h2>Dispensador Agua</h2>
-                <div class="status">
-                    <p>Estado: <span id="water-status">●</span> Offline</p>
-                    <p>Nivel: <span id="water-level">--</span></p>
-                </div>
-                <a href="pages/agua.html" class="btn">Ir a Agua</a>
-            </div>
-
-            <!-- Tarjeta: Sensores -->
-            <div class="card">
-                <h2>Sensores</h2>
-                <div class="status">
-                    <p>Temperatura: <span id="temp">--°C</span></p>
-                    <p>Movimiento: <span id="motion">No detectado</span></p>
-                </div>
-                <a href="pages/sensores.html" class="btn">Ver Sensores</a>
-            </div>
-
-            <!-- Tarjeta: Juego Botones -->
             <div class="card card-comida">
-                <h2>Juego de botones</h2>
-                
-                </div class="status">
-                    <p>
-                        <span class="status_label">Premio disponible:</span>
-                        <span class="status-value" id="game-prize">--</span>
-                    </p>
-                    <p>
-                        <span class="status-label">Intentos de hoy:</span>
-                        <span class="status-value" id="game-attempts">--</span>
-                    </p>
-                    <p>
-                        <span class="status-label">Estado:</span>
-                        <span class="status-value" id="game-status">--</span>
-                    </p>
+                <h2>🍖 Dispensador de Comida</h2>
+                <p>Administra porciones y consulta el estado actual del dispensador.</p>
+                <button class="btn btn-primary" onclick="location.href='pages/comida.html'">Abrir módulo</button>
+            </div>
+        
+            <div class="card card-agua">
+                <h2>💧 Dispensador de Agua</h2>
+                <p>Controla la apertura del sistema de agua y revisa el historial de uso.</p>
+                <button class="btn btn-primary" onclick="location.href='pages/agua.html'">Abrir módulo</button>
+            </div>
+        
+            <div class="card card-sensores">
+                <h2>📡 Sensores</h2>
+                <p>Consulta temperatura, presencia y el estado general de monitoreo.</p>
+                <button class="btn btn-primary" onclick="location.href='pages/sensores.html'">Abrir módulo</button>
+            </div>
+        
+            <div class="card">
+                <h2>🚪 Puerta Automática</h2>
+                <p>Control manual y programado de apertura y cierre para tu mascota.</p>
+                <button class="btn btn-primary" onclick="location.href='pages/puerta.html'">Abrir módulo</button>
+            </div>
+        
+            <div class="card card-juego">
+                <h2>🎮 Juego de Botones</h2>
+                <p>Gestiona el juego diario, el premio y el temporizador del siguiente intento.</p>
+                <button class="btn btn-primary" onclick="location.href='pages/juego-botones.html'">Abrir módulo</button>
+            </div>
+        
+            <div class="card">
+                <h2>Lanzador de Pelotas</h2>
+                <div class="status">
+                    <p>Estado: <span id="launcher-status">●</span> Listo</p>
+                    <p>Modo: <span id="launcher-mode">5 pelotas</span></p>
                 </div>
-
-                <a href="pages/juego-botones.html" class="btn">Ir al Juego</a>
+                <a href="pages/lanzador-pelotas.html" class="btn">Ir al Lanzador</a>
             </div>
 
 

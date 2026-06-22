@@ -8,9 +8,17 @@
 </head>
 <body>
     <aside class="sidebar">
-        <h1>🐾 Smart Pet</h1>
+        <div class="brand">
+            <img src="../assets/logo.png" alt="Smart Pet Home" class="brand-logo">
+            <div class="brand-text">
+                <h1>Smart Pet Home</h1>
+                <p>Keeping pets happy</p>
+            </div>
+        </div>        
+        
         <nav>
             <a href="../index.html">📊 Dashboard</a>
+            <a href="mascotas.html">🐶 Mascotas</a>
             <a href="comida.html">🍖 Comida</a>
             <a href="agua.html">💧 Agua</a>
             <a href="sensores.html">📡 Sensores</a>
@@ -81,7 +89,6 @@
                     <button class="btn btn-primary boton-juego" data-boton="2">2</button>
                     <button class="btn btn-primary boton-juego" data-boton="3">3</button>
                     <button class="btn btn-primary boton-juego" data-boton="4">4</button>
-                    <button class="btn btn-primary boton-juego" data-boton="5">5</button>
                 </div>
 
                 <div id="resultadoJuego" style="margin-top: 20px; display: none;"></div>
@@ -142,6 +149,24 @@
                 .addEventListener('click', reiniciarDia);
         });
 
+        function renderizarBotones(totalBotones = 4) {
+            const contenedor = document.getElementById('botonesJuego');
+
+            if (!contenedor) return;
+
+            let html = '';
+
+            for (let i = 1; i <= totalBotones; i++) {
+                html += `
+                    <button class="btn btn-primary" onclick="jugarBoton(${i})">
+                        🔘 Botón ${i}
+                    </button>
+                `;
+            }
+
+            contenedor.innerHTML = html;
+        }
+
         async function cargarEstadoJuego() {
             const data = await JuegoBotonesApi.obtenerEstado();
 
@@ -154,6 +179,7 @@
             document.getElementById('premioDisponible').textContent = data.premio_disponible ? 'Sí' : 'No';
             document.getElementById('totalIntentos').textContent = data.total_intentos ?? 0;
             document.getElementById('estadoArduino').textContent = data.arduino_conectado ? 'Conectado' : 'No conectado';
+            renderizarBotones(Number(data.total_botones || 4));
 
             if (!data.premio_disponible) {
                 document.getElementById('premioDisponible').style.color = '#dc3545';

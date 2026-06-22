@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lanzador de Pelotas - Smart Pet Home</title>
+    <title>Lanzador de Pelotas</title>
     <link rel="stylesheet" href="../css/style.css">
 </head>
 <body>
@@ -14,10 +14,7 @@
             <a href="comida.html">🍖 Comida</a>
             <a href="agua.html">💧 Agua</a>
             <a href="sensores.html">📡 Sensores</a>
-            <a href="puerta.html">🚪 Puerta</a>
-            <a href="comunicacion.html">📢 Comunicación</a>
-            <a href="juego-botones.html">🎮 Juego</a>
-            <a href="lanzador-pelotas.html" class="active">🎾 Pelotas</a>
+            <a href="lanzador-pelotas.html" class="active">🎾 Lanzador</a>
             <a href="configuracion.html">⚙️ Configuración</a>
         </nav>
     </aside>
@@ -25,12 +22,16 @@
     <main class="container">
         <header class="header">
             <h1>🎾 Lanzador de Pelotas</h1>
-            <p>Activa a distancia el juego de lanzamiento de pelotas para tu mascota</p>
+            <p>Control del lanzador con 2 motores DC, ruedas y driver L9110S</p>
         </header>
 
         <div class="grid">
-            <div class="card card-comida">
-                <h2>🚀 Lanzar Pelotas</h2>
+            <!-- TARJETA 1: CONTROL PRINCIPAL -->
+            <div class="card">
+                <h2>
+                    <span class="indicator-light indicator-green" id="indicadorLanzador"></span>
+                    Control del Lanzador
+                </h2>
 
                 <div class="form-group">
                     <label for="cantidadPelotas">Cantidad de pelotas:</label>
@@ -41,24 +42,43 @@
                         max="5"
                         value="5"
                     >
-                    <small style="color:#9E9E9E;">
-                        Para la historia 11 se recomienda lanzar 5 pelotas.
-                    </small>
+                    <small style="color: #9E9E9E;">Máximo requerido para defensa: 5 pelotas.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="potenciaMotores">Potencia de motores: <span id="potenciaTexto">220</span>/255</label>
+                    <input
+                        type="range"
+                        id="potenciaMotores"
+                        min="100"
+                        max="255"
+                        value="220"
+                    >
+                    <small style="color: #9E9E9E;">Si no lanza lejos, sube la potencia poco a poco.</small>
                 </div>
 
                 <button id="lanzarBtn" class="btn btn-primary">
-                    🎾 Lanzar
+                    🎾 LANZAR PELOTAS
                 </button>
 
                 <button id="detenerBtn" class="btn btn-danger">
-                    ⛔ Detener
+                    ⛔ DETENER
+                </button>
+
+                <button id="testBtn" class="btn btn-secondary">
+                    ⚙️ PROBAR MOTORES
                 </button>
 
                 <div id="resultadoLanzador" style="margin-top: 15px; display: none;"></div>
+
+                <div id="loadingLanzador" style="display: none; margin-top: 15px;">
+                    <p style="color: #F57C00; font-weight: bold;">⏳ Enviando comando al lanzador...</p>
+                </div>
             </div>
 
+            <!-- TARJETA 2: ESTADO -->
             <div class="card">
-                <h2>📋 Estado</h2>
+                <h2>📊 Estado del Lanzador</h2>
 
                 <div class="status">
                     <p>
@@ -66,12 +86,12 @@
                         <span class="status-value" id="estadoLanzador">--</span>
                     </p>
                     <p>
-                        <span class="status-label">Arduino:</span>
-                        <span class="status-value" id="estadoArduino">--</span>
-                    </p>
-                    <p>
                         <span class="status-label">Última cantidad:</span>
                         <span class="status-value" id="ultimaCantidad">--</span>
+                    </p>
+                    <p>
+                        <span class="status-label">Potencia:</span>
+                        <span class="status-value" id="potenciaEstado">--</span>
                     </p>
                     <p>
                         <span class="status-label">Último lanzamiento:</span>
@@ -80,31 +100,40 @@
                 </div>
 
                 <button id="recargarEstadoBtn" class="btn btn-secondary btn-small">
-                    🔄 Recargar
+                    🔄 Recargar Estado
                 </button>
             </div>
 
+            <!-- TARJETA 3: GUÍA DE USO -->
             <div class="card">
-                <h2>📊 Estadísticas</h2>
+                <h2>ℹ️ ¿Cómo funciona?</h2>
 
-                <div class="status">
-                    <p>
-                        <span class="status-label">Lanzamientos:</span>
-                        <span class="status-value" id="totalLanzamientos">0</span>
-                    </p>
-                    <p>
-                        <span class="status-label">Pelotas lanzadas:</span>
-                        <span class="status-value" id="pelotasTotales">0</span>
-                    </p>
+                <div style="font-size: 14px; line-height: 1.8;">
+                    <p><strong>1.</strong> El adaptador de 9V alimenta los motores.</p>
+                    <p><strong>2.</strong> Arduino solo envía señales al driver L9110S.</p>
+                    <p><strong>3.</strong> Las ruedas deben girar hacia adentro para jalar la pelota.</p>
+                    <p><strong>4.</strong> Se recomienda probar primero con pelotas de papel pequeñas.</p>
+                    <p><strong>5.</strong> Para defensa, usa la opción de lanzar 5 pelotas.</p>
                 </div>
             </div>
 
+            <!-- TARJETA 4: CONEXIONES -->
+            <div class="card">
+                <h2>🔌 Conexión usada</h2>
+
+                <div class="status">
+                    <p><strong>D5:</strong> A-IA</p>
+                    <p><strong>D6:</strong> A-IB</p>
+                    <p><strong>D10:</strong> B-IA</p>
+                    <p><strong>D11:</strong> B-IB</p>
+                    <p><strong>9V +:</strong> VCC del L9110S</p>
+                    <p><strong>9V -:</strong> GND del L9110S</p>
+                    <p><strong>GND Arduino:</strong> GND del L9110S</p>
+                </div>
+            </div>
         </div>
 
-        <div
-            id="alertContainerPelotas"
-            style="position: fixed; bottom: 20px; right: 20px; max-width: 320px; z-index: 9999;">
-        </div>
+        <div id="alertContainerLanzador" style="position: fixed; bottom: 20px; right: 20px; max-width: 320px; z-index: 9999;"></div>
     </main>
 
     <script src="../js/api.js"></script>
@@ -114,97 +143,143 @@
 
             document.getElementById('lanzarBtn').addEventListener('click', lanzarPelotas);
             document.getElementById('detenerBtn').addEventListener('click', detenerLanzador);
+            document.getElementById('testBtn').addEventListener('click', probarMotores);
             document.getElementById('recargarEstadoBtn').addEventListener('click', cargarEstadoLanzador);
 
-            setInterval(cargarEstadoLanzador, 5000);
+            document.getElementById('potenciaMotores').addEventListener('input', actualizarTextoPotencia);
         });
 
+        function actualizarTextoPotencia() {
+            const potencia = document.getElementById('potenciaMotores').value;
+            document.getElementById('potenciaTexto').textContent = potencia;
+        }
+
         async function cargarEstadoLanzador() {
-            const data = await LanzadorPelotasApi.obtenerEstado();
+            try {
+                const data = await LanzadorPelotasApi.obtenerEstado();
 
-            if (!data.success) {
-                mostrarAlerta(data.error, 'error');
-                return;
+                if (!data.success) {
+                    mostrarResultadoLanzador('❌ No se pudo cargar el estado del lanzador.', 'error');
+                    return;
+                }
+
+                document.getElementById('estadoLanzador').textContent = data.activo ? 'Activo' : 'Detenido';
+                document.getElementById('ultimaCantidad').textContent = data.ultimaCantidad ?? '--';
+                document.getElementById('potenciaEstado').textContent = data.potencia ?? '--';
+
+                document.getElementById('ultimoLanzamiento').textContent = data.ultimoLanzamiento
+                    ? new Date(data.ultimoLanzamiento).toLocaleTimeString('es-CR', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    })
+                    : '--';
+
+                const indicador = document.getElementById('indicadorLanzador');
+                indicador.className = data.activo
+                    ? 'indicator-light indicator-yellow'
+                    : 'indicator-light indicator-green';
+
+            } catch (error) {
+                mostrarResultadoLanzador(`❌ ${error.message}`, 'error');
             }
-
-            document.getElementById('estadoLanzador').textContent = data.estado || '--';
-            document.getElementById('estadoArduino').textContent = data.arduino_conectado ? 'Conectado' : 'No conectado';
-            document.getElementById('ultimaCantidad').textContent = data.ultima_cantidad ?? '--';
-            document.getElementById('totalLanzamientos').textContent = data.total_lanzamientos ?? 0;
-            document.getElementById('pelotasTotales').textContent = data.pelotas_lanzadas_total ?? 0;
-
-            document.getElementById('ultimoLanzamiento').textContent = data.ultimo_lanzamiento
-                ? new Date(data.ultimo_lanzamiento).toLocaleTimeString('es-CR', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                })
-                : '--';
         }
 
         async function lanzarPelotas() {
             const cantidad = document.getElementById('cantidadPelotas').value;
-            const btn = document.getElementById('lanzarBtn');
+            const potencia = document.getElementById('potenciaMotores').value;
 
-            btn.disabled = true;
-            mostrarResultado('⏳ Lanzando pelotas...', 'info');
+            await ejecutarAccionLanzador(async () => {
+                const data = await LanzadorPelotasApi.lanzar(cantidad, potencia);
 
-            const data = await LanzadorPelotasApi.lanzar(cantidad);
-
-            btn.disabled = false;
-
-            if (data.success) {
-                mostrarResultado(`✅ ${data.message}`, 'success');
-                mostrarAlerta(data.message, 'success');
-                cargarEstadoLanzador();
-            } else {
-                mostrarResultado(`❌ ${data.error}`, 'error');
-                mostrarAlerta(data.error, 'error');
-            }
+                if (data.success) {
+                    mostrarResultadoLanzador(`✅ ${data.message}`, 'success');
+                    mostrarAlertaLanzador(`✅ Lanzador iniciado: ${cantidad} pelota(s)`, 'success');
+                    cargarEstadoLanzador();
+                } else {
+                    mostrarResultadoLanzador(`❌ ${data.error}`, 'error');
+                    mostrarAlertaLanzador(`❌ ${data.error}`, 'error');
+                }
+            });
         }
 
         async function detenerLanzador() {
-            const data = await LanzadorPelotasApi.detener();
+            await ejecutarAccionLanzador(async () => {
+                const data = await LanzadorPelotasApi.detener();
 
-            if (data.success) {
-                mostrarResultado(`✅ ${data.message}`, 'success');
-                mostrarAlerta(data.message, 'success');
-                cargarEstadoLanzador();
-            } else {
-                mostrarResultado(`❌ ${data.error}`, 'error');
-                mostrarAlerta(data.error, 'error');
-            }
+                if (data.success) {
+                    mostrarResultadoLanzador(`✅ ${data.message}`, 'success');
+                    mostrarAlertaLanzador('⛔ Lanzador detenido', 'warning');
+                    cargarEstadoLanzador();
+                } else {
+                    mostrarResultadoLanzador(`❌ ${data.error}`, 'error');
+                    mostrarAlertaLanzador(`❌ ${data.error}`, 'error');
+                }
+            });
         }
 
-        function mostrarResultado(mensaje, tipo) {
+        async function probarMotores() {
+            await ejecutarAccionLanzador(async () => {
+                const data = await LanzadorPelotasApi.probarMotores();
+
+                if (data.success) {
+                    mostrarResultadoLanzador(`✅ ${data.message}`, 'success');
+                    mostrarAlertaLanzador('⚙️ Prueba de motores completada', 'success');
+                    cargarEstadoLanzador();
+                } else {
+                    mostrarResultadoLanzador(`❌ ${data.error}`, 'error');
+                    mostrarAlertaLanzador(`❌ ${data.error}`, 'error');
+                }
+            });
+        }
+
+        async function ejecutarAccionLanzador(callback) {
+            const botones = [
+                document.getElementById('lanzarBtn'),
+                document.getElementById('detenerBtn'),
+                document.getElementById('testBtn')
+            ];
+
+            const loading = document.getElementById('loadingLanzador');
+
+            botones.forEach(btn => btn.disabled = true);
+            loading.style.display = 'block';
+
+            try {
+                await callback();
+            } catch (error) {
+                mostrarResultadoLanzador(`❌ ${error.message}`, 'error');
+                mostrarAlertaLanzador(`❌ ${error.message}`, 'error');
+            }
+
+            botones.forEach(btn => btn.disabled = false);
+            loading.style.display = 'none';
+        }
+
+        function mostrarResultadoLanzador(mensaje, tipo) {
             const resultado = document.getElementById('resultadoLanzador');
 
-            const clases = {
-                success: 'alert alert-success',
-                error: 'alert alert-error',
-                warning: 'alert alert-warning',
-                info: 'alert alert-info'
-            };
-
-            resultado.className = clases[tipo] || 'alert alert-info';
-            resultado.textContent = mensaje;
             resultado.style.display = 'block';
+            resultado.className = tipo === 'success'
+                ? 'alert alert-success'
+                : tipo === 'warning'
+                    ? 'alert alert-warning'
+                    : 'alert alert-error';
+
+            resultado.textContent = mensaje;
         }
 
-        function mostrarAlerta(mensaje, tipo) {
-            const clases = {
-                success: 'alert-success',
-                error: 'alert-error',
-                warning: 'alert-warning',
-                info: 'alert-info'
-            };
-
+        function mostrarAlertaLanzador(mensaje, tipo = 'info') {
+            const contenedor = document.getElementById('alertContainerLanzador');
             const alerta = document.createElement('div');
-            alerta.className = `alert ${clases[tipo] || 'alert-info'}`;
+
+            alerta.className = `alert alert-${tipo}`;
             alerta.textContent = mensaje;
 
-            document.getElementById('alertContainerPelotas').appendChild(alerta);
+            contenedor.appendChild(alerta);
 
-            setTimeout(() => alerta.remove(), 4000);
+            setTimeout(() => {
+                alerta.remove();
+            }, 3500);
         }
     </script>
 </body>

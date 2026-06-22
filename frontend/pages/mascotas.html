@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mascotas - Smart Pet Home</title>
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="brand">
+            <img src="../assets/logo.png" alt="Smart Pet Home" class="brand-logo">
+            <div class="brand-text">
+                <h1>Smart Pet Home</h1>
+                <p>Keeping pets happy</p>
+            </div>
+        </div>        
+        
+        <nav>
+            <a href="../index.html">📊 Dashboard</a>
+            <a href="mascotas.html" class="active">🐶 Mascotas</a>
+            <a href="comida.html">🍖 Comida</a>
+            <a href="agua.html">💧 Agua</a>
+            <a href="sensores.html">📡 Sensores</a>
+            <a href="puerta.html">🚪 Puerta</a>
+            <a href="comunicacion.html">📢 Comunicación</a>
+            <a href="juego-botones.html">🎮 Juego</a>
+            <a href="lanzador-pelotas.html">🎾 Pelotas</a>
+            <a href="configuracion.html">⚙️ Configuración</a>
+        </nav>
+    </aside>
+
+    <main class="container">
+        <header class="header">
+            <h1>🐶 Gestión de Mascotas</h1>
+            <p>Registra una o varias mascotas y administra su perfil</p>
+        </header>
+
+        <div class="grid">
+            <div class="card">
+                <h2 id="tituloFormulario">➕ Registrar Mascota</h2>
+
+                <input type="hidden" id="mascotaId">
+
+                <div class="form-group">
+                    <label for="nombre">Nombre:</label>
+                    <input type="text" id="nombre" maxlength="60" placeholder="Ej: Sansa">
+                </div>
+
+                <div class="form-group">
+                    <label for="tipo">Tipo:</label>
+                    <select id="tipo">
+                        <option value="">Seleccione...</option>
+                        <option value="perro">Perro</option>
+                        <option value="gato">Gato</option>
+                        <option value="conejo">Conejo</option>
+                        <option value="ave">Ave</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="raza">Raza:</label>
+                    <input type="text" id="raza" maxlength="80" placeholder="Ej: Doméstico">
+                </div>
+
+                <div class="form-group">
+                    <label for="edad">Edad:</label>
+                    <input type="number" id="edad" min="0" max="80" step="0.1" placeholder="Ej: 3">
+                </div>
+
+                <div class="form-group">
+                    <label for="peso">Peso kg:</label>
+                    <input type="number" id="peso" min="0" max="200" step="0.1" placeholder="Ej: 4.2">
+                </div>
+
+                <div class="form-group">
+                    <label for="foto">Foto URL o ruta:</label>
+                    <input type="text" id="foto" maxlength="500" placeholder="Ej: ../img/mascota.png">
+                    <small style="color:#9E9E9E;">Puede ser URL de internet o una ruta local del proyecto.</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="notas">Notas:</label>
+                    <textarea id="notas" maxlength="500" rows="4" placeholder="Ej: Le gusta dormir mucho"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="principal">
+                        Marcar como mascota principal
+                    </label>
+                </div>
+
+                <button id="guardarBtn" class="btn btn-primary">💾 Guardar</button>
+                <button id="cancelarBtn" class="btn btn-secondary" style="display:none;">Cancelar edición</button>
+            </div>
+
+            <div class="card">
+                <h2>📋 Resumen</h2>
+
+                <div class="status">
+                    <p>
+                        <span class="status-label">Total mascotas:</span>
+                        <span class="status-value" id="totalMascotas">0</span>
+                    </p>
+                    <p>
+                        <span class="status-label">Mascota principal:</span>
+                        <span class="status-value" id="mascotaPrincipal">--</span>
+                    </p>
+                </div>
+
+                <button id="recargarBtn" class="btn btn-secondary btn-small">🔄 Recargar</button>
+            </div>
+
+            <div class="card" style="grid-column: span 2;">
+                <h2>🐾 Mascotas Registradas</h2>
+                <div id="listaMascotas">
+                    <p style="color:#9E9E9E;">Cargando mascotas...</p>
+                </div>
+            </div>
+        </div>
+
+        <div
+            id="alertContainerMascotas"
+            style="position: fixed; bottom: 20px; right: 20px; max-width: 320px; z-index: 9999;">
+        </div>
+    </main>
+
+    <script src="../js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            cargarMascotas();
+
+            document.getElementById('guardarBtn').addEventListener('click', guardarMascota);
+            document.getElementById('cancelarBtn').addEventListener('click', limpiarFormulario);
+            document.getElementById('recargarBtn').addEventListener('click', cargarMascotas);
+        });
+
+        async function cargarMascotas() {
+            const data = await MascotasApi.listar();
+
+            if (!data.success) {
+                mostrarAlerta(data.error, 'error');
+                return;
+            }
+
+            pintarMascotas(data.mascotas || []);
+            cargarResumen();
+        }
+
+        async function cargarResumen() {
+            const data = await MascotasApi.obtenerResumen();
+
+            if (!data.success) return;
+
+            document.getElementById('totalMascotas').textContent = data.resumen.total || 0;
+            document.getElementById('mascotaPrincipal').textContent = data.resumen.principal
+                ? data.resumen.principal.nombre
+                : '--';
+        }
+
+        async function guardarMascota() {
+            const id = document.getElementById('mascotaId').value;
+
+            const mascota = {
+                nombre: document.getElementById('nombre').value,
+                tipo: document.getElementById('tipo').value,
+                raza: document.getElementById('raza').value,
+                edad: document.getElementById('edad').value,
+                peso: document.getElementById('peso').value,
+                foto: document.getElementById('foto').value,
+                notas: document.getElementById('notas').value,
+                principal: document.getElementById('principal').checked
+            };
+
+            const data = id
+                ? await MascotasApi.actualizar(id, mascota)
+                : await MascotasApi.crear(mascota);
+
+            if (data.success) {
+                mostrarAlerta(data.message, 'success');
+                limpiarFormulario();
+                cargarMascotas();
+            } else {
+                mostrarAlerta(data.error, 'error');
+            }
+        }
+
+        function pintarMascotas(mascotas) {
+            const contenedor = document.getElementById('listaMascotas');
+
+            if (!mascotas.length) {
+                contenedor.innerHTML = '<p style="color:#9E9E9E;">No hay mascotas registradas.</p>';
+                return;
+            }
+
+            contenedor.innerHTML = mascotas.map((mascota) => {
+                const foto = mascota.foto
+                    ? `<img src="${escaparHTML(mascota.foto)}" alt="Foto de ${escaparHTML(mascota.nombre)}" style="width:90px;height:90px;object-fit:cover;border-radius:12px;border:2px solid #F2F2F2;">`
+                    : `<div style="width:90px;height:90px;border-radius:12px;background:#F5E6CA;display:flex;align-items:center;justify-content:center;font-size:36px;">🐾</div>`;
+
+                return `
+                    <div style="display:flex; gap:16px; align-items:flex-start; border-left:4px solid ${mascota.principal ? '#F57C00' : '#2E86AB'}; padding:14px; margin:12px 0; background:#fff; border-radius:10px;">
+                        <div>${foto}</div>
+
+                        <div style="flex:1;">
+                            <h3 style="margin:0;">
+                                ${escaparHTML(mascota.nombre)}
+                                ${mascota.principal ? '⭐' : ''}
+                            </h3>
+
+                            <p style="margin:4px 0;color:#9E9E9E;">
+                                ${escaparHTML(mascota.tipo || '--')} · 
+                                ${escaparHTML(mascota.raza || 'Sin raza')} · 
+                                ${mascota.edad ?? '--'} años · 
+                                ${mascota.peso ?? '--'} kg
+                            </p>
+
+                            <p style="margin:4px 0;">
+                                ${escaparHTML(mascota.notas || 'Sin notas')}
+                            </p>
+
+                            <button class="btn btn-secondary btn-small" onclick='editarMascota(${JSON.stringify(mascota).replaceAll("'", "&#039;")})'>
+                                ✏️ Editar
+                            </button>
+
+                            <button class="btn btn-success btn-small" onclick="marcarPrincipal('${mascota.id}')">
+                                ⭐ Principal
+                            </button>
+
+                            <button class="btn btn-danger btn-small" onclick="eliminarMascota('${mascota.id}')">
+                                🗑 Eliminar
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function editarMascota(mascota) {
+            document.getElementById('tituloFormulario').textContent = '✏️ Editar Mascota';
+            document.getElementById('mascotaId').value = mascota.id;
+            document.getElementById('nombre').value = mascota.nombre || '';
+            document.getElementById('tipo').value = mascota.tipo || '';
+            document.getElementById('raza').value = mascota.raza || '';
+            document.getElementById('edad').value = mascota.edad ?? '';
+            document.getElementById('peso').value = mascota.peso ?? '';
+            document.getElementById('foto').value = mascota.foto || '';
+            document.getElementById('notas').value = mascota.notas || '';
+            document.getElementById('principal').checked = Boolean(mascota.principal);
+            document.getElementById('cancelarBtn').style.display = 'inline-block';
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        async function marcarPrincipal(id) {
+            const data = await MascotasApi.marcarPrincipal(id);
+
+            if (data.success) {
+                mostrarAlerta(data.message, 'success');
+                cargarMascotas();
+            } else {
+                mostrarAlerta(data.error, 'error');
+            }
+        }
+
+        async function eliminarMascota(id) {
+            const confirmar = confirm('¿Seguro que deseas eliminar esta mascota?');
+
+            if (!confirmar) return;
+
+            const data = await MascotasApi.eliminar(id);
+
+            if (data.success) {
+                mostrarAlerta(data.message, 'success');
+                cargarMascotas();
+            } else {
+                mostrarAlerta(data.error, 'error');
+            }
+        }
+
+        function limpiarFormulario() {
+            document.getElementById('tituloFormulario').textContent = '➕ Registrar Mascota';
+            document.getElementById('mascotaId').value = '';
+            document.getElementById('nombre').value = '';
+            document.getElementById('tipo').value = '';
+            document.getElementById('raza').value = '';
+            document.getElementById('edad').value = '';
+            document.getElementById('peso').value = '';
+            document.getElementById('foto').value = '';
+            document.getElementById('notas').value = '';
+            document.getElementById('principal').checked = false;
+            document.getElementById('cancelarBtn').style.display = 'none';
+        }
+
+        function mostrarAlerta(mensaje, tipo) {
+            const clases = {
+                success: 'alert-success',
+                error: 'alert-error',
+                warning: 'alert-warning',
+                info: 'alert-info'
+            };
+
+            const alerta = document.createElement('div');
+            alerta.className = `alert ${clases[tipo] || 'alert-info'}`;
+            alerta.textContent = mensaje;
+
+            document.getElementById('alertContainerMascotas').appendChild(alerta);
+
+            setTimeout(() => alerta.remove(), 4000);
+        }
+
+        function escaparHTML(texto) {
+            return String(texto)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+    </script>
+</body>
+</html>
